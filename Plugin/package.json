@@ -1,0 +1,52 @@
+{
+  "name": "@mattt/paseo-creator-micro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Paseo plugin that shows workspaces on a Work Louder Creator Micro 2 keypad and controls Paseo from it.",
+  "keywords": [
+    "creator-micro",
+    "keypad",
+    "paseo",
+    "paseo-plugin",
+    "work-louder"
+  ],
+  "license": "MIT",
+  "author": "Mattt Zmuda",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mattt/paseo-creator-micro.git",
+    "directory": "Plugin"
+  },
+  "files": [
+    "paseo-plugin.json",
+    "OVERVIEW.md",
+    "README.md",
+    "index.client.tsx",
+    "index.server.ts",
+    "client/",
+    "server/",
+    "shared/"
+  ],
+  "type": "module",
+  "scripts": {
+    "install:dev": "npm ci",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json",
+    "test": "vp test",
+    "lint": "vp lint",
+    "fmt": "vp fmt",
+    "check": "vp check && npm run typecheck && npm test",
+    "fake-bridge": "node scripts/fake-bridge.ts"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "0.13.0",
+    "@getpaseo/protocol": "0.13.0",
+    "@tanstack/react-query": "^5.90.11",
+    "@types/node": "^24.19.2",
+    "@types/react": "~19.2.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "typescript": "^5.9.3",
+    "vite-plus": "^1.4.0",
+    "zod": "^4.4.3"
+  }
+}

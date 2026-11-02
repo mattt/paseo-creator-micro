@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- The Creator Micro 2's keys on its four-column grid: rows of 2, 4, 4, and 3,
+       with the bottom row's first slot empty and a double-wide key after it. -->
+  <g fill="#EDEDF0">
+    <rect x="388" y="252" width="112" height="112" rx="26"/>
+    <rect x="524" y="252" width="112" height="112" rx="26"/>
+    <rect x="252" y="388" width="112" height="112" rx="26"/>
+    <rect x="388" y="388" width="112" height="112" rx="26"/>
+    <rect x="524" y="388" width="112" height="112" rx="26"/>
+    <rect x="660" y="388" width="112" height="112" rx="26"/>
+    <rect x="252" y="524" width="112" height="112" rx="26"/>
+    <rect x="388" y="524" width="112" height="112" rx="26"/>
+    <rect x="524" y="524" width="112" height="112" rx="26"/>
+    <rect x="660" y="524" width="112" height="112" rx="26"/>
+    <rect x="388" y="660" width="248" height="112" rx="26"/>
+    <rect x="660" y="660" width="112" height="112" rx="26"/>
+  </g>
+</svg>

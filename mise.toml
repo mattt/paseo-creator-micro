@@ -1,0 +1,72 @@
+[tools]
+node = "24.21.0"
+
+[tasks."build:swift"]
+description = "Build the Swift package"
+run = "swift build"
+
+[tasks."test:swift"]
+description = "Run the Swift package tests; set PASEO_MICRO_HARDWARE=1 to include the keypad"
+depends = ["build:swift"]
+run = "swift test"
+
+[tasks."lint:swift"]
+description = "Lint the Swift sources with swift format"
+run = "swift format lint --strict --recursive Package.swift Sources Tests"
+
+[tasks."format:swift"]
+description = "Format the Swift sources with swift format"
+run = "swift format --in-place --recursive Package.swift Sources Tests"
+
+[tasks.check]
+description = "Check Swift and the Paseo plugin"
+depends = ["check:swift", "check:plugin"]
+
+[tasks."check:swift"]
+description = "Lint, build, and test the Swift package"
+depends = ["lint:swift", "test:swift"]
+
+[tasks."build:app"]
+description = "Build PaseoMicro.app with the micro command inside, and sign both"
+run = "Scripts/app.sh build"
+
+[tasks."install:app"]
+description = "Build and sign the app, quit it, replace /Applications/Paseo Micro.app, and open it"
+run = "Scripts/app.sh install"
+
+[tasks."run:app"]
+description = "Open the installed app, else the build; `-- build` opens the build; PASEO_MICRO_* variables go to it"
+run = "Scripts/app.sh run"
+
+[tasks."quit:app"]
+description = "Quit the running app, installed or built"
+run = "Scripts/app.sh quit"
+
+[tasks."install:plugin"]
+description = "Install the plugin's development dependencies from the lockfile"
+run = "npm --prefix Plugin run install:dev"
+
+[tasks."typecheck:plugin"]
+description = "Typecheck the plugin client and server"
+run = "npm --prefix Plugin run typecheck"
+
+[tasks."test:plugin"]
+description = "Run the plugin unit and integration tests"
+run = "npm --prefix Plugin run test"
+
+[tasks."lint:plugin"]
+description = "Lint the plugin"
+run = "npm --prefix Plugin run lint"
+
+[tasks."format:plugin"]
+description = "Format the plugin"
+run = "npm --prefix Plugin run fmt"
+
+[tasks."check:plugin"]
+description = "Check plugin formatting, lint, types, and tests"
+run = "npm --prefix Plugin run check"
+
+[tasks."fake-bridge:plugin"]
+description = "Run a fake PaseoMicro app on the default socket"
+run = "npm --prefix Plugin run fake-bridge"
+raw = true
