@@ -30,16 +30,8 @@ func drawKeypad(_ context: CGContext, state: String) {
     ] {
         roundedRect(context, CGRect(x: x, y: y, width: width, height: 3), radius: 0.5)
     }
-    // The curved side faces upper left; center its bounds in the 3-point grid slot.
-    let radius: CGFloat = 1.5
-    let offset = radius * (1 - 1 / sqrt(2)) / 2
-    context.saveGState()
-    context.translateBy(x: 2.5 + offset, y: 3.5 + offset)
-    context.rotate(by: -.pi / 4)
-    context.addArc(center: .zero, radius: radius, startAngle: .pi, endAngle: 2 * .pi, clockwise: false)
-    context.closePath()
-    context.fillPath()
-    context.restoreGState()
+    // Match the thumbstick cutout's one-point diameter and vertical position.
+    context.fillEllipse(in: CGRect(x: 2, y: 3, width: 1, height: 1))
     context.addPath(
         CGPath(
             roundedRect: CGRect(x: 13, y: 2, width: 3, height: 3),
