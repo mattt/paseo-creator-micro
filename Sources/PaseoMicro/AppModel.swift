@@ -85,11 +85,11 @@ final class AppModel {
         Task { await start() }
     }
 
-    /// The symbol in the menu bar, which reflects the connection.
-    var menuBarSymbol: String {
-        if !keypad.connected { return "keyboard.badge.ellipsis" }
-        if keypad.lightsPaused || !keypad.lightsVisible { return "keyboard.badge.exclamationmark" }
-        return "keyboard"
+    /// The icon in the menu bar, which reflects the connection and lighting.
+    var menuBarIcon: MenuBarIcon {
+        if !keypad.connected { return .disconnected }
+        if keypad.lightsPaused || !keypad.lightsVisible { return .attention }
+        return .connected
     }
 
     /// The MCP port: the `PASEO_MICRO_MCP_PORT` environment variable,

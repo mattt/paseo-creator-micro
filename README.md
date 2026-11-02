@@ -247,6 +247,15 @@ With an emulated keypad, click a key in the menu or use its dial and joystick co
 `Tests/` contains the Swift tests, `App/` contains the bundle metadata and icon,
 `Scripts/app.sh` builds and signs the app, and `Plugin/` contains the Paseo plugin.
 
+The menu bar uses template PDFs in `Sources/PaseoMicro/Resources/`.
+The disconnected state uses the connected image at 40 percent opacity;
+the attention state adds an exclamation mark.
+Run `mise run generate:icons` from the repository root to regenerate them
+and render each state at 1x and 2x on light and dark backgrounds
+in `/tmp/paseo-micro-icons/`.
+Use Xcode's Swift toolchain, as for the build tasks.
+The app build copies the SwiftPM resource bundle into the app before signing it.
+
 Document every public Swift symbol.
 Run `mise run check` before each commit.
 Only one program may write to the keypad's vendor HID interface at a time.

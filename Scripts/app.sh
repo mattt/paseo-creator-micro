@@ -18,6 +18,7 @@
 #   Contents/Resources/Assets.car    the layered app icon that actool compiles from App/AppIcon.icon,
 #                                    with light and dark appearances
 #   Contents/Resources/AppIcon.icns  the flattened fallback icon from the same compilation
+#   Contents/Resources/*.bundle     SwiftPM resources, including menu bar template PDFs
 #
 # Both executables are signed with the identifier co.dododo.paseo-micro and the same certificate,
 # so that the Accessibility permission survives rebuilds and the move to /Applications.
@@ -87,6 +88,7 @@ assemble() {
     fi
     cp "$bin/PaseoMicro" "$app/Contents/MacOS/PaseoMicro"
     cp "$bin/micro" "$app/Contents/MacOS/micro"
+    cp -R "$bin/paseo-creator-micro_PaseoMicro.bundle" "$app/Contents/Resources/"
     echo "Assembled $app (version $version)"
 }
 
