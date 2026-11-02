@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- The Creator Micro 2's keys on its four-column grid: rows of 2, 4, 4, and 3,
+  <!-- The dial and joystick occupy the top left and top right slots.
+       The Creator Micro 2's keys on its four-column grid: rows of 2, 4, 4, and 3,
        with the bottom row's first slot empty and a double-wide key after it. -->
   <g fill="#EDEDF0">
+    <path d="M252 336 A56 56 0 0 1 364 336 Z"/>
+    <path fill-rule="evenodd" d="M686 252 H746 Q772 252 772 278 V338 Q772 364 746 364 H686 Q660 364 660 338 V278 Q660 252 686 252 Z M750 308 A34 34 0 1 0 682 308 A34 34 0 1 0 750 308 Z"/>
     <rect x="388" y="252" width="112" height="112" rx="26"/>
     <rect x="524" y="252" width="112" height="112" rx="26"/>
     <rect x="252" y="388" width="112" height="112" rx="26"/>
