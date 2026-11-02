@@ -250,7 +250,7 @@ With an emulated keypad, click a key in the menu or use its dial and joystick co
 The menu bar uses template PDFs in `Sources/PaseoMicro/Resources/`.
 The disconnected state uses the connected image at 40 percent opacity;
 the attention state adds an exclamation mark.
-Run `swift Scripts/menu-bar-icons.swift` from the repository root to regenerate them
+Run `mise run generate:icons` from the repository root to regenerate them
 and render each state at 1x and 2x on light and dark backgrounds
 in `/tmp/paseo-micro-icons/`.
 Use Xcode's Swift toolchain, as for the build tasks.

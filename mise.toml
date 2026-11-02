@@ -18,6 +18,10 @@ run = "swift format lint --strict --recursive Package.swift Sources Tests"
 description = "Format the Swift sources with swift format"
 run = "swift format --in-place --recursive Package.swift Sources Tests"
 
+[tasks."generate:icons"]
+description = "Regenerate menu bar template PDFs and light and dark previews at 1x and 2x"
+run = "swift Scripts/menu-bar-icons.swift"
+
 [tasks.check]
 description = "Check Swift and the Paseo plugin"
 depends = ["check:swift", "check:plugin"]
