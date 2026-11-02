@@ -1,0 +1,64 @@
+name: CI
+
+on:
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
+
+permissions:
+    contents: read
+
+jobs:
+    swift:
+        name: Swift on macOS ${{ matrix.macos }} with Xcode ${{ matrix.xcode }}
+        runs-on: ${{ matrix.runner }}
+        env:
+            DEVELOPER_DIR: "/Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer"
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - macos: "26"
+                      xcode: "26.0"
+                      runner: macos-26
+                    - macos: "27"
+                      xcode: "27.0"
+                      runner: xcode-27
+        timeout-minutes: 15
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Lint
+              run: swift format lint --strict --recursive Package.swift Sources Tests
+
+            - name: Build
+              run: swift build
+
+            - name: Test
+              run: swift test
+
+    plugin:
+        name: Paseo plugin
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        defaults:
+            run:
+                working-directory: Plugin
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: "24.21.0"
+                  cache: npm
+                  cache-dependency-path: Plugin/package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Check formatting, lint, types, and tests
+              run: npm run check
