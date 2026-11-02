@@ -30,11 +30,16 @@ func drawKeypad(_ context: CGContext, state: String) {
     ] {
         roundedRect(context, CGRect(x: x, y: y, width: width, height: 3), radius: 0.5)
     }
-    // Upper semicircle, with the same open space below it as the app icon's dial.
-    context.move(to: CGPoint(x: 1, y: 4.5))
-    context.addCurve(to: CGPoint(x: 4, y: 4.5), control1: CGPoint(x: 1, y: 2.5), control2: CGPoint(x: 4, y: 2.5))
+    // The curved side faces upper left; center its bounds in the 3-point grid slot.
+    let radius: CGFloat = 1.5
+    let offset = radius * (1 - 1 / sqrt(2)) / 2
+    context.saveGState()
+    context.translateBy(x: 2.5 + offset, y: 3.5 + offset)
+    context.rotate(by: -.pi / 4)
+    context.addArc(center: .zero, radius: radius, startAngle: .pi, endAngle: 2 * .pi, clockwise: false)
     context.closePath()
     context.fillPath()
+    context.restoreGState()
     context.addPath(
         CGPath(
             roundedRect: CGRect(x: 13, y: 2, width: 3, height: 3),
