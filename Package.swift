@@ -31,7 +31,11 @@ let package = Package(
                 .product(name: "NIOHTTP1", package: "swift-nio"),
             ]
         ),
-        .executableTarget(name: "PaseoMicro", dependencies: ["CreatorMicro", "PaseoMicroCore"]),
+        .executableTarget(
+            name: "PaseoMicro",
+            dependencies: ["CreatorMicro", "PaseoMicroCore"],
+            resources: [.process("Resources")]
+        ),
         .executableTarget(name: "micro", dependencies: ["PaseoMicroCore"]),
         .testTarget(name: "CreatorMicroTests", dependencies: ["CreatorMicro"]),
         .testTarget(

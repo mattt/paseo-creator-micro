@@ -9,7 +9,8 @@ struct PaseoMicroApp: App {
         MenuBarExtra {
             MenuView(model: model)
         } label: {
-            Image(systemName: model.menuBarSymbol)
+            Image(nsImage: model.menuBarIcon.image)
+                .opacity(model.menuBarIcon.opacity)
                 .accessibilityLabel("Paseo Micro")
         }
         .menuBarExtraStyle(.window)
