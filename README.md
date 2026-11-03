@@ -1,5 +1,7 @@
 # Paseo Micro
 
+<img alt="A Work Louder Creator Micro 2 keypad with a teal light around its edge and one frosted key glowing green" src=".github/paseo-micro-keypad.jpg" />
+
 Paseo Micro connects a Work Louder Creator Micro 2 keypad to
 [Paseo](https://paseo.sh) agents.
 A Swift menu bar app handles USB, lights, and macOS shortcuts.
