@@ -31,9 +31,11 @@ let package = Package(
                 .product(name: "NIOHTTP1", package: "swift-nio"),
             ]
         ),
+        // The menu's views, apart from the app, so that they can draw without a session.
+        .target(name: "PaseoMicroMenu", dependencies: ["CreatorMicro", "PaseoMicroCore"]),
         .executableTarget(
             name: "PaseoMicro",
-            dependencies: ["CreatorMicro", "PaseoMicroCore"],
+            dependencies: ["CreatorMicro", "PaseoMicroCore", "PaseoMicroMenu"],
             resources: [.process("Resources")]
         ),
         .executableTarget(name: "micro", dependencies: ["PaseoMicroCore"]),
@@ -45,6 +47,10 @@ let package = Package(
                 "PaseoMicroCore",
                 .product(name: "MCP", package: "swift-sdk"),
             ]
+        ),
+        .testTarget(
+            name: "PaseoMicroMenuTests",
+            dependencies: ["CreatorMicro", "PaseoMicroCore", "PaseoMicroMenu"]
         ),
     ]
 )
