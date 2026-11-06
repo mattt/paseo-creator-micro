@@ -31,7 +31,7 @@ let package = Package(
                 .product(name: "NIOHTTP1", package: "swift-nio"),
             ]
         ),
-        // The menu's views, apart from the app, so that they can draw without a session.
+        // The menu's views, apart from the app, so that `render-menu` can draw them without a session.
         .target(name: "PaseoMicroMenu", dependencies: ["CreatorMicro", "PaseoMicroCore"]),
         .executableTarget(
             name: "PaseoMicro",
@@ -39,6 +39,8 @@ let package = Package(
             resources: [.process("Resources")]
         ),
         .executableTarget(name: "micro", dependencies: ["PaseoMicroCore"]),
+        // A development tool that `mise run render:menu` runs; `Scripts/app.sh` does not bundle it.
+        .executableTarget(name: "render-menu", dependencies: ["CreatorMicro", "PaseoMicroCore", "PaseoMicroMenu"]),
         .testTarget(name: "CreatorMicroTests", dependencies: ["CreatorMicro"]),
         .testTarget(
             name: "PaseoMicroCoreTests",
