@@ -4,11 +4,11 @@ import { SidebarRow } from "@getpaseo/plugin/client/ui";
 import { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ACTIONS } from "../shared/actions";
-import { keyCode } from "../shared/keypad";
+import { keyName } from "../shared/keypad";
 import { reconnectRpc } from "../shared/rpc";
 import { KEY_STATE_LABELS } from "../shared/settings";
 import { useKeypadStatus } from "./status";
-import { lightSwatch, summarize, topKeyLabel } from "./summary";
+import { lightSwatch, sidebarLabel, summarize, topKeyLabel } from "./summary";
 
 /** A sidebar footer row that shows whether the keypad works and opens its details. */
 export function KeypadSidebarItem({ theme, host, openPopover }: PluginSidebarItemProps) {
@@ -17,11 +17,11 @@ export function KeypadSidebarItem({ theme, host, openPopover }: PluginSidebarIte
   return (
     <SidebarRow
       icon="Keyboard"
-      label={summarize(status.data)}
+      label={sidebarLabel(status.data)}
       onPress={() => openPopover(KeypadPopover)}
       trailing={
         <View
-          accessibilityLabel="Underglow: lit while an agent needs input"
+          accessibilityLabel="Underglow"
           style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }}
         />
       }
@@ -57,9 +57,6 @@ function KeypadPopover({ theme, host }: PluginPopoverProps) {
     <View style={styles.body}>
       <Text style={styles.title}>{summarize(data)}</Text>
       {data?.settings.error ? <Text style={styles.muted}>{data.settings.error}</Text> : null}
-      {data?.bridge.state !== "connected" && data?.bridge.error ? (
-        <Text style={styles.muted}>{data.bridge.error}</Text>
-      ) : null}
       {data?.keys.map((key) => (
         <View key={key.key} style={styles.row}>
           <View
@@ -69,7 +66,7 @@ function KeypadPopover({ theme, host }: PluginPopoverProps) {
             ]}
           />
           <Text style={styles.text} numberOfLines={1}>
-            {keyCode(key.key)} {topKeyLabel(data.topKeyMode, key.key, key)}
+            {keyName(key.key)}: {topKeyLabel(data.topKeyMode, key.key, key)}
             {key.kind === "navigation" && !key.enabled ? " · nothing to do" : ""}
             {key.state !== "empty" ? ` · ${KEY_STATE_LABELS[key.state]}` : ""}
             {key.selected ? " · selected" : ""}
@@ -77,9 +74,6 @@ function KeypadPopover({ theme, host }: PluginPopoverProps) {
           </Text>
         </View>
       ))}
-      {data?.lastInput ? (
-        <Text style={styles.muted}>Last input: {data.lastInput.description}</Text>
-      ) : null}
       {data?.lastAction ? (
         <Text style={styles.muted}>
           {ACTIONS[data.lastAction.action].label}: {data.lastAction.message}

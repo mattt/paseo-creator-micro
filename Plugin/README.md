@@ -305,12 +305,12 @@ The plugin's settings are grouped as follows:
 
 | Group        | Controls                                                                                                                                                 |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Keypad       | Connection, firmware, battery, layer, top-key mode, single-tap opening, bindings, key groups, and radial choices                                         |
+| Keypad       | Plain status, top-key mode, single-tap opening, bindings, key groups, and radial choices                                                                 |
 | Lights       | State styles, selection brightness, selected-off light, navigation light, underglow, action-key lights, key backlight, thinking meter, and failure flash |
 | Agents       | Subagent inclusion and the target used without a selected workspace                                                                                      |
 | Scrolling    | Normal and fast lines per step, and the scroll position in Paseo's window                                                                                |
 | Push to talk | Return on release and the delay after dictation stops, including when Submit stops it                                                                    |
-| Connection   | CLI path, socket path, and the bundle ID that receives shortcuts                                                                                         |
+| Advanced     | Collapsed: CLI path, socket path, the bundle ID that receives shortcuts, and Reconnect                                                                   |
 
 **Underglow** can show the next agent that needs action,
 light yellow while any agent needs input, or stay off.
@@ -388,7 +388,7 @@ Pins apply to Workspaces and Pinned workspaces modes.
 replacing a connection that is still waiting for PaseoMicro to answer.
 
 Click the sidebar footer to see what each top key shows
-and the last input and action.
+and the last action.
 
 ## Development
 

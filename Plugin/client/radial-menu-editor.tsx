@@ -226,14 +226,14 @@ export function RadialMenuEditor({
       <SettingsCard>
         <SettingsSwitch
           label="Radial menu"
-          hint="Push the joystick to show eight choices over Paseo's window, point at one, and let go to run it. Return the stick to the center slowly to cancel. While the menu is on, the joystick's four direction bindings do nothing; they work again when you turn it off."
+          hint="Push the joystick to show eight choices, then let go on one to run it."
           value={menu.enabled}
           disabled={settings.saving}
           onValueChange={(enabled) => setMenu({ enabled })}
         />
         <SettingsRow
           label="Slots"
-          hint="The menu acts on the selected workspace's agent, named in the center. A slot that cannot act now, such as Approve without a pending request, is dimmed. Choose a slot to change it."
+          hint="Choose a slot to change it. Slots that can't act now are dimmed."
         >
           <RadialMenuRing
             theme={theme}
@@ -284,11 +284,11 @@ function SlotEditor({
     <SettingsCard>
       <SettingsRow
         label={`${name}: ${slot.label}`}
-        hint={blocker ? `Dimmed now: ${blocker}.` : "Can act now."}
+        hint={blocker ? `Dimmed: ${blocker}.` : undefined}
       />
       <SettingsSelect
         label="Icon"
-        hint="PaseoMicro draws this SF Symbol."
+        hint="An SF Symbol name."
         value={slot.icon}
         options={ICON_OPTIONS}
         disabled={disabled}
@@ -313,7 +313,7 @@ function SlotEditor({
       />
       <SettingsInput
         label="Label"
-        hint="One or two words under the icon."
+        hint="One or two words."
         initialValue={slot.label}
         error={labelError}
         disabled={disabled}
@@ -322,7 +322,7 @@ function SlotEditor({
       {slot.action === "sendPrompt" ? (
         <SettingsInput
           label="Prompt"
-          hint="Sent to the agent that the menu acts on. With no prompt, the slot is dimmed."
+          hint="Sent to the selected agent."
           initialValue={slot.text}
           placeholder="Continue"
           disabled={disabled}

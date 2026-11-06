@@ -8,7 +8,7 @@ import {
   WORKSPACE_KEY_COUNT,
   KEY_ROWS,
   keyActionInput,
-  keyCode,
+  keyName,
   type ActionInput,
   type JoystickDirection,
 } from "../shared/keypad";
@@ -130,7 +130,7 @@ export function KeypadPicture({
     if (first === undefined || !input) return null;
     const leader = groupLeader(settings.keyGroups, input);
     const action = settings.bindings[leader].action;
-    const codes = keys.map(keyCode).join(" + ");
+    const name = keyName(...keys);
     // A key with a light source shows the light that the plugin sends it;
     // the keypad shows it only on a layer that binds the key to an AG code.
     const own = status?.actionKeys.find((entry) => entry.key === first)?.light;
@@ -138,7 +138,7 @@ export function KeypadPicture({
       <Pressable
         key={first}
         accessibilityRole="button"
-        accessibilityLabel={`${codes}: ${ACTIONS[action].label}`}
+        accessibilityLabel={`${name}: ${ACTIONS[action].label}`}
         onPress={() => onSelect({ kind: "input", input: leader })}
         style={[
           styles.key,
@@ -149,7 +149,7 @@ export function KeypadPicture({
           },
         ]}
       >
-        <Text style={styles.code}>{codes}</Text>
+        <Text style={styles.code}>{name}</Text>
         <Text style={styles.label} numberOfLines={2}>
           {action === "none" ? "—" : shortLabel(ACTIONS[action].label, 22)}
         </Text>
@@ -165,7 +165,7 @@ export function KeypadPicture({
       <Pressable
         key={key}
         accessibilityRole="button"
-        accessibilityLabel={`${keyCode(key)}: ${title}${info?.pinned ? ", pinned" : ""}`}
+        accessibilityLabel={`${keyName(key)}: ${title}${info?.pinned ? ", pinned" : ""}`}
         onPress={() => onSelect({ kind: "workspaceKey", key })}
         style={[
           styles.key,
@@ -176,7 +176,7 @@ export function KeypadPicture({
         ]}
       >
         <Text style={styles.code}>
-          {keyCode(key)}
+          {keyName(key)}
           {info?.pinned ? " · pinned" : ""}
         </Text>
         <Text style={styles.label} numberOfLines={2}>

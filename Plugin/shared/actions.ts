@@ -61,112 +61,95 @@ export const ACTIONS: Readonly<Record<ActionId, ActionDescription>> = {
   none: { label: "Nothing", description: "The input does nothing." },
   nextActionableAgent: {
     label: "Open next agent that needs action",
-    description:
-      "Opens the agent that has waited longest with a permission request, a failure, or an unread result, skipping the agents it opened in this round. Does nothing when no agent needs action.",
+    description: "Opens the agent that has waited longest for you.",
   },
   nextStuckWorkspace: {
     label: "Open next workspace that needs input",
-    description:
-      "Opens the waiting agent of the next workspace with an agent that needs input, in order of how long each has waited, starting after the selected workspace. Does nothing when no agent waits.",
+    description: "Opens the next workspace with an agent that needs input.",
   },
   navigateBack: {
     label: "Go back",
-    description:
-      "Opens the agent that the keypad opened before the current one, like a browser's back button. Repeated presses go further back. The history has only the places that the keypad opened.",
+    description: "Goes back through the places that the keypad opened.",
   },
   navigateForward: {
     label: "Go forward",
-    description:
-      "After going back, opens the agent that the keypad opened after the current one, like a browser's forward button. Opening something new drops the places ahead.",
+    description: "Goes forward through the places that the keypad opened.",
   },
   previousWorkspace: {
     label: "Previous workspace (Cmd+[)",
-    description: "Sends Cmd+[ to Paseo, which opens the previous workspace in its sidebar.",
+    description: "Opens the previous workspace in Paseo's sidebar.",
   },
   nextWorkspace: {
     label: "Next workspace (Cmd+])",
-    description: "Sends Cmd+] to Paseo, which opens the next workspace in its sidebar.",
+    description: "Opens the next workspace in Paseo's sidebar.",
   },
   previousProject: {
     label: "Previous project",
-    description:
-      "Opens the most relevant agent of the most recently active workspace in the previous project, with the projects in name order. Paseo has no shortcut for projects.",
+    description: "Opens the most recent workspace in the previous project.",
   },
   nextProject: {
     label: "Next project",
-    description:
-      "Opens the most relevant agent of the most recently active workspace in the next project, with the projects in name order. Paseo has no shortcut for projects.",
+    description: "Opens the most recent workspace in the next project.",
   },
   newAgent: {
     label: "New agent (Cmd+O)",
-    description: "Sends Cmd+O to Paseo, its shortcut for a new agent (agent.new).",
+    description: "Starts a new agent in Paseo.",
   },
   pushToTalk: {
     label: "Push to talk",
-    description:
-      "Starts Paseo dictation on press and stops it on release. Inputs without a release toggle dictation.",
+    description: "Dictates while you hold the input.",
   },
   submit: {
     label: "Submit",
-    description:
-      "Sends Return to Paseo to send the composer's text. Stops dictation first if the keypad started it.",
+    description: "Sends the composer's text.",
   },
   focusComposer: {
     label: "Focus the composer (Cmd+L)",
-    description: "Sends Cmd+L to Paseo, which puts the cursor in the open agent's composer.",
+    description: "Puts the cursor in the open agent's composer.",
   },
   scrollDown: {
     label: "Scroll down",
-    description:
-      "Scrolls the open agent's conversation in Paseo toward its newest messages, by the lines in the scroll settings.",
+    description: "Scrolls the conversation toward its newest messages.",
   },
   scrollUp: {
     label: "Scroll up",
-    description:
-      "Scrolls the open agent's conversation in Paseo toward its oldest messages, by the lines in the scroll settings.",
+    description: "Scrolls the conversation toward its oldest messages.",
   },
   scrollDownFast: {
     label: "Scroll down fast",
-    description:
-      "Scrolls the open agent's conversation in Paseo toward its newest messages, by the fast lines in the scroll settings.",
+    description: "Scrolls quickly toward the newest messages.",
   },
   scrollUpFast: {
     label: "Scroll up fast",
-    description:
-      "Scrolls the open agent's conversation in Paseo toward its oldest messages, by the fast lines in the scroll settings.",
+    description: "Scrolls quickly toward the oldest messages.",
   },
   jumpToBottom: {
     label: "Jump to the bottom",
-    description:
-      "Scrolls the open agent's conversation in Paseo to its newest message. Presses that arrive while a jump waits or runs are ignored.",
+    description: "Scrolls the conversation to its newest message.",
   },
   toggleVoiceMode: {
     label: "Toggle voice mode",
-    description: "Turns Paseo voice mode on or off, in which Paseo answers aloud.",
+    description: "Turns Paseo's spoken answers on or off.",
   },
   approvePermission: {
     label: "Approve permission",
-    description:
-      "Allows the pending request of the selected workspace's agent, else the oldest pending request. Questions open the agent instead.",
+    description: "Allows the selected agent's pending request, else the oldest one.",
   },
   denyPermission: {
     label: "Deny permission",
-    description:
-      "Denies the pending request of the selected workspace's agent, else the oldest pending request. Questions open the agent instead.",
+    description: "Denies the selected agent's pending request, else the oldest one.",
   },
   stopAgent: {
     label: "Stop agent",
-    description: "Interrupts the turn of the selected workspace's agent.",
+    description: "Stops the selected agent's turn.",
   },
   thinkingUp: {
     label: "More thinking",
-    description:
-      "Moves the selected workspace's agent to the next thinking option of its model, and shows the new level on the workspace keys for a moment.",
+    description: "Moves the selected agent to its next thinking level.",
   },
   thinkingDown: {
     label: "Less thinking",
-    description:
-      "Moves the selected workspace's agent to the previous thinking option of its model, and shows the new level on the workspace keys for a moment.",
+    description: "Moves the selected agent to its previous thinking level.",
   },
   selectNextWorkspace: {
     label: "Select next workspace",
@@ -182,7 +165,6 @@ export const ACTIONS: Readonly<Record<ActionId, ActionDescription>> = {
   },
   sendPrompt: {
     label: "Send prompt",
-    description:
-      "Sends the configured text to the selected workspace's agent. A running agent receives it as steering. With no text, the input does nothing.",
+    description: "Sends your text to the selected agent.",
   },
 };
