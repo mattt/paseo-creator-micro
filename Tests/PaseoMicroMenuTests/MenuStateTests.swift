@@ -122,13 +122,34 @@ struct MenuStateTests {
         state.lastInput = .dial(.press)
         state.mcpURL = URL(string: "http://127.0.0.1:7655/mcp")
         #expect(
-            state.detailRows.map(\.title) == ["Connection", "Firmware", "Layer", "Lighting", "Last Input", "Clients"]
+            state.detailRows.map(\.title) == [
+                "Connection", "Battery", "Firmware", "Layer", "Lighting", "Last Input", "Clients",
+            ]
         )
-        #expect(state.detailRows[3].value == "Not paused")
-        #expect(state.detailRows[5].value == "None")
+        #expect(state.detailRows[4].value == "Not paused")
+        #expect(state.detailRows[6].value == "None")
         #expect(state.mcpText == "http://127.0.0.1:7655/mcp")
         state.clients = ["one", "two"]
-        #expect(state.detailRows[5].value == "one, two")
+        #expect(state.detailRows[6].value == "one, two")
+    }
+
+    @Test(
+        "Details show the battery's charge and charging state",
+        arguments: [
+            (64, false, "64%, not charging"), (64, true, "64%, charging"), (64, nil, "64%"),
+            (nil, nil, "—"),
+        ] as [(Int?, Bool?, String)]
+    )
+    func batteryDetail(percent: Int?, charging: Bool?, text: String) {
+        let state = MenuState(keypad: connected(battery: percent, charging: charging))
+        #expect(state.detailRows.first { $0.title == "Battery" }?.value == text)
+    }
+
+    @Test("Details show no battery without a keypad")
+    func batteryDetailDisconnected() {
+        var keypad = KeypadState.disconnected
+        keypad.battery = 5
+        #expect(MenuState(keypad: keypad).detailRows.first { $0.title == "Battery" }?.value == "—")
     }
 
     @Test(

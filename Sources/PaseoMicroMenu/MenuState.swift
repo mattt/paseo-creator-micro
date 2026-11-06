@@ -88,6 +88,7 @@ public struct MenuState: Sendable {
     public var detailRows: [MenuDetailRow] {
         [
             MenuDetailRow(title: "Connection", value: keypad.transport ?? "—"),
+            MenuDetailRow(title: "Battery", value: batteryText),
             MenuDetailRow(title: "Firmware", value: keypad.firmware ?? "—"),
             MenuDetailRow(title: "Layer", value: keypad.layerDescription),
             MenuDetailRow(title: "Lighting", value: lighting),
@@ -99,6 +100,15 @@ public struct MenuState: Sendable {
     /// The text of the MCP row: the address, or why there is none.
     public var mcpText: String {
         mcpURL?.absoluteString ?? mcpError ?? "—"
+    }
+
+    private var batteryText: String {
+        guard keypad.connected, let percent = keypad.battery else { return "—" }
+        switch keypad.charging {
+        case true?: return "\(percent)%, charging"
+        case false?: return "\(percent)%, not charging"
+        case nil: return "\(percent)%"
+        }
     }
 
     private var lighting: String {
