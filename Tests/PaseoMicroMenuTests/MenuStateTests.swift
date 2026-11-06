@@ -152,11 +152,37 @@ struct MenuStateTests {
         #expect(MenuState(keypad: keypad).detailRows.first { $0.title == "Battery" }?.value == "—")
     }
 
+    @Test("A key shows as down only between its press and its release, while connected")
+    func pressedKey() {
+        var state = MenuState(keypad: connected())
+        #expect(state.pressedKey == nil)
+        state.lastInput = .key(KeyInput(key: 6, action: .press))
+        #expect(state.pressedKey == 6)
+        state.lastInput = .key(KeyInput(key: 6, action: .release))
+        #expect(state.pressedKey == nil)
+        state.lastInput = .dial(.press)
+        #expect(state.pressedKey == nil)
+        state.lastInput = .key(KeyInput(key: 13, action: .press))
+        #expect(state.pressedKey == nil)
+        state.lastInput = .key(KeyInput(key: 6, action: .press))
+        state.keypad = .disconnected
+        #expect(state.pressedKey == nil)
+    }
+
+    @Test("Only the layer's keys show their own lights, and any key may while the layer is unknown")
+    func lightableKeys() {
+        let keypad = KeypadState(connected: true, layer: 2, inputLayers: [2], lightableKeys: [2: [0, 6]])
+        #expect(MenuState(keypad: keypad).lightableKeys == [0, 6])
+        #expect(MenuState(keypad: connected(layer: 1)).lightableKeys == [])
+        #expect(MenuState(keypad: connected(layer: nil)).lightableKeys == nil)
+        #expect(MenuState(keypad: .disconnected).lightableKeys == nil)
+    }
+
     @Test(
         "Keys describe colors in words",
         arguments: [
             (0xFF2D2D, "red"), (0xFFC800, "yellow"), (0x00FF00, "green"), (0x2D7DFF, "blue"), (0xFFFFFF, "white"),
-            (0xFF8800, "orange"), (0x9933FF, "purple"), (0x000000, "off"),
+            (0xFF8800, "orange"), (0x9933FF, "purple"), (0x000000, "off"), (0x2DD4BF, "teal"),
         ]
     )
     func colorNames(packed: Int, name: String) {

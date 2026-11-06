@@ -42,9 +42,9 @@ public struct MenuContent<DeveloperControls: View>: View {
             ForEach(state.notices) { NoticeView(notice: $0, perform: perform) }
             KeypadView(
                 lights: state.lights,
-                lightableKeys: state.keypad.connected && state.keypad.isOnInputLayer
-                    ? state.keypad.litKeysOnLayer : nil,
+                lightableKeys: state.lightableKeys,
                 connected: state.keypad.connected,
+                pressedKey: state.pressedKey,
                 showsKeyDetails: showsDetails,
                 onTap: onKeyTap
             )

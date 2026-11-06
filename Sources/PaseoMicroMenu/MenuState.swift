@@ -84,6 +84,19 @@ public struct MenuState: Sendable {
         return BatteryIndicator(percent: percent, charging: keypad.charging == true)
     }
 
+    /// The keys that show their own lights on the keypad's layer,
+    /// or `nil` while the layer is unknown, when the drawing treats every key as able to.
+    public var lightableKeys: Set<Int>? {
+        keypad.connected && keypad.layer != nil ? keypad.litKeysOnLayer : nil
+    }
+
+    /// The key that is down, from the most recent input.
+    public var pressedKey: Int? {
+        guard keypad.connected, case .key(let input) = lastInput, input.action == .press, input.key < KeyInput.count
+        else { return nil }
+        return input.key
+    }
+
     /// The rows of the Details section, in order.
     public var detailRows: [MenuDetailRow] {
         [
