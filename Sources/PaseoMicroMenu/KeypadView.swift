@@ -161,9 +161,14 @@ public struct KeypadView: View {
         case .badge:
             BadgeView(connected: connected, increasedContrast: contrast == .increased)
         case .key(let key):
-            keycap(key, second: nil, label: "\(key)", light: light(of: slot, state, at: time))
+            keycap(key, second: nil, label: KeyDescription.number(key), light: light(of: slot, state, at: time))
         case .double(let first, let second):
-            keycap(first, second: second, label: "\(first)–\(second)", light: light(of: slot, state, at: time))
+            keycap(
+                first,
+                second: second,
+                label: "\(KeyDescription.number(first))–\(KeyDescription.number(second))",
+                light: light(of: slot, state, at: time)
+            )
         }
     }
 
@@ -202,12 +207,23 @@ public struct KeypadView: View {
 }
 
 /// What a key shows, in words, for its tooltip and VoiceOver.
+///
+/// People see keys numbered 1 to 13, as in the plugin's settings;
+/// code, the bridge, MCP, and logs use the 0-based indexes 0 to 12.
 public enum KeyDescription {
+    /// The number that people see for a key index, such as `7` for index 6.
+    ///
+    /// - Parameter key: The key's 0-based index.
+    /// - Returns: The key's 1-based number.
+    public static func number(_ key: Int) -> String {
+        String(key + 1)
+    }
+
     /// Returns a description such as `Key 3, green, breathing`.
     ///
     /// - Parameters:
     ///   - key: The key's index.
-    ///   - name: The key's name, such as `3` or `10–11`.
+    ///   - name: The key's name as people see it, such as `3` or `11–12`.
     ///   - light: The key's own light, if one is set.
     ///   - shown: The color that the key shows, if any.
     ///   - lightable: Whether the key can show its own light on the keypad's layer.
@@ -221,7 +237,7 @@ public enum KeyDescription {
     }
 
     /// Returns one sentence for VoiceOver about the whole keypad, such as
-    /// `Keypad lights: ring teal; keys 0 to 5 white; key 6 yellow, breathing; other keys faint white`.
+    /// `Keypad lights: ring teal; keys 1 to 6 white; key 7 yellow, breathing; other keys faint white`.
     ///
     /// - Parameters:
     ///   - lights: The app's desired lights.
@@ -290,13 +306,13 @@ public enum KeyDescription {
         effect == .solid ? colorName(color) : "\(colorName(color)), \(effect.spokenName)"
     }
 
-    /// Names keys, such as `key 6`, `keys 0 to 5`, or `keys 1, 4`.
+    /// Names keys by their numbers, such as `key 7`, `keys 1 to 6`, or `keys 2, 5`.
     private static func names(_ keys: [Int]) -> String {
         guard let first = keys.first, let last = keys.last, keys.count > 1 else {
-            return "key \(keys.first ?? 0)"
+            return "key \(number(keys.first ?? 0))"
         }
-        if last - first == keys.count - 1 { return "keys \(first) to \(last)" }
-        return "keys " + keys.map(String.init).joined(separator: ", ")
+        if last - first == keys.count - 1 { return "keys \(number(first)) to \(number(last))" }
+        return "keys " + keys.map(number).joined(separator: ", ")
     }
 }
 

@@ -196,13 +196,37 @@ struct MenuStateTests {
         let green = LightColor(packed: 0x00FF00)
         let breathing = KeyLight(key: 3, color: green, effect: .breathing)
         #expect(
-            KeyDescription.text(key: 3, name: "3", light: breathing, shown: green, lightable: true)
-                == "Key 3, green, breathing"
+            KeyDescription.text(key: 3, name: KeyDescription.number(3), light: breathing, shown: green, lightable: true)
+                == "Key 4, green, breathing"
         )
-        #expect(KeyDescription.text(key: 3, name: "3", light: nil, shown: nil, lightable: true) == "Key 3, off")
         #expect(
-            KeyDescription.text(key: 7, name: "7", light: nil, shown: nil, lightable: false)
-                == "Key 7, off, no light of its own on this layer"
+            KeyDescription.text(key: 3, name: KeyDescription.number(3), light: nil, shown: nil, lightable: true)
+                == "Key 4, off"
         )
+        #expect(
+            KeyDescription.text(key: 7, name: KeyDescription.number(7), light: nil, shown: nil, lightable: false)
+                == "Key 8, off, no light of its own on this layer"
+        )
+    }
+
+    @Test("People see keys numbered 1 to 13")
+    func keyNumbers() {
+        #expect(KeyDescription.number(0) == "1")
+        #expect(KeyDescription.number(12) == "13")
+    }
+
+    @Test("Last Input names keys from 1, without firmware codes")
+    func lastInput() {
+        var state = MenuState(keypad: connected())
+        state.lastInput = .key(KeyInput(key: 6, action: .press))
+        #expect(state.detailRows[3].value == "Key 7 pressed")
+        state.lastInput = .key(KeyInput(key: 12, action: .release))
+        #expect(state.detailRows[3].value == "Key 13 released")
+        state.lastInput = .dial(.clockwise)
+        #expect(state.detailRows[3].value == "Dial turned clockwise")
+        state.lastInput = .dial(.press)
+        #expect(state.detailRows[3].value == "Dial pressed")
+        state.lastInput = nil
+        #expect(state.detailRows[3].value == "—")
     }
 }

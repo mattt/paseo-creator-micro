@@ -76,7 +76,8 @@ and a drawing of the keypad whose lights follow the lights that the app keeps on
 The app does not read lights back from the keypad,
 and it shows the keypad's effects without matching their timing.
 The header always shows how the keypad is connected, over USB or Bluetooth, and its battery charge.
-Hold Option as it opens, or while it is open, to see each key's number,
+Hold Option as it opens, or while it is open, to see each key's number
+(1 to 13, as in the plugin's settings),
 the firmware, layer, lighting, last input, connected programs, and the MCP address.
 A dashed outline marks a key that has no light of its own on the current layer.
 
