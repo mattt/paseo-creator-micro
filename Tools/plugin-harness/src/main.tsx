@@ -1,12 +1,13 @@
 // Renders the settings screen beside a sidebar with the plugin's footer row and its popover.
 // Query parameters: theme=dark|light, mode=<top key mode>, radial=on|off,
-// state=connected|idle|waiting|disconnected|layer, view=settings|sidebar.
+// state=connected|idle|waiting|disconnected|layer, next=needsInput|failed|done,
+// view=settings|sidebar, and click=<accessibility label>.
 import type { PluginTheme } from "@getpaseo/plugin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { ScrollView, Text, View } from "react-native-web";
 import { KeypadSettingsScreen } from "../../../Plugin/client/settings-screen";
-import { KeypadPopover, KeypadSidebarItem } from "../../../Plugin/client/sidebar-status";
+import { KeypadSidebarItem } from "../../../Plugin/client/sidebar-status";
 import { ThemeContext } from "./plugin-ui";
 
 const params = new URLSearchParams(location.search);
@@ -57,30 +58,19 @@ function App() {
       {view !== "settings" ? (
         <View
           style={{
-            width: 300,
+            width: 260,
             borderRightWidth: 1,
             borderRightColor: theme.colors.border,
             justifyContent: "flex-end",
             paddingVertical: 12,
-            gap: 12,
           }}
         >
-          <View
-            style={{
-              marginHorizontal: 8,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-              backgroundColor: theme.colors.surface1,
-            }}
-          >
-            <KeypadPopover {...surface} close={() => undefined} openScreen={() => undefined} />
-          </View>
           <KeypadSidebarItem
             {...surface}
             currentScreen={null}
             openScreen={() => undefined}
             openPopover={() => undefined}
+            openSettings={() => console.info("open settings")}
           />
         </View>
       ) : null}

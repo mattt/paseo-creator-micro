@@ -95,7 +95,14 @@ export function sampleStatus(settings: KeypadSettings, params: URLSearchParams):
     topKeyMode: mode,
     keys,
     ambient: light(settings.lights.underglowStyle),
-    nextAgent: { id: "agent-0", name: "Fix login redirect", state: "needsInput" },
+    nextAgent:
+      scenario === "idle"
+        ? null
+        : {
+            id: "agent-0",
+            name: "Fix login redirect",
+            state: (params.get("next") ?? "needsInput") as "needsInput" | "failed" | "done",
+          },
     actionKeys: [
       {
         key: 6,
@@ -112,7 +119,7 @@ export function sampleStatus(settings: KeypadSettings, params: URLSearchParams):
       ),
     },
     selectedWorkspaceId: "workspace-1",
-    attentionCount: scenario === "connected" ? 1 : 0,
+    attentionCount: scenario === "idle" ? 0 : 1,
     pendingPermissionCount: 0,
     lastInput: { description: "key 7 press", at: new Date().toISOString() },
     lastAction: {

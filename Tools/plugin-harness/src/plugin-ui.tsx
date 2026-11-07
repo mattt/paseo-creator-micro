@@ -6,7 +6,7 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { icons } from "lucide-react";
 import { Children, createContext, Fragment, isValidElement, useContext, useState } from "react";
 import type { ReactNode } from "react";
-import { Pressable, Text, TextInput as NativeTextInput, View } from "react-native-web";
+import { Pressable, ScrollView, Text, TextInput as NativeTextInput, View } from "react-native-web";
 
 export const ThemeContext = createContext<PluginTheme | null>(null);
 
@@ -23,10 +23,109 @@ function pascal(name: string): string {
     .join("");
 }
 
-export function Icon({ name, size = 16, color }: { name?: string; size?: number; color?: string }) {
-  const Lucide = name ? (icons as Record<string, typeof icons.Circle>)[pascal(name)] : undefined;
+type IconSource = string | { svg: string } | ((props: { size: number; color: string }) => ReactNode);
+
+/** Draws a Lucide name, inline SVG painted with the color as `currentColor`, or a component. */
+export function Icon({
+  name,
+  icon,
+  size = 16,
+  color = "currentColor",
+}: {
+  name?: string;
+  icon?: IconSource;
+  size?: number;
+  color?: string;
+}) {
+  const source = icon ?? name;
+  if (typeof source === "function") {
+    const Component = source;
+    return <Component size={size} color={color} />;
+  }
+  if (typeof source === "object" && source !== null) {
+    const svg = source.svg.replaceAll("currentColor", color);
+    return (
+      <img
+        alt=""
+        width={size}
+        height={size}
+        src={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
+      />
+    );
+  }
+  const Lucide = source ? (icons as Record<string, typeof icons.Circle>)[pascal(source)] : undefined;
   return Lucide ? <Lucide size={size} color={color} /> : null;
 }
+
+/** A centered dialog over a dimmed page, after Paseo's host modal. */
+export function Modal({
+  title,
+  icon,
+  open,
+  onOpenChange,
+  children,
+}: {
+  title: string;
+  icon?: ReactNode;
+  open: boolean;
+  onOpenChange(open: boolean): void;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  if (!open) return null;
+  return (
+    <View
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0,0,0,0.55)",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+      }}
+    >
+      <View
+        accessibilityRole="dialog"
+        style={{
+          width: 600,
+          maxHeight: "92vh",
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.surface0,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingHorizontal: 24,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.border,
+          }}
+        >
+          {icon}
+          <Text style={{ flex: 1, color: theme.colors.foreground, fontSize: 16, fontWeight: "600" }}>
+            {title}
+          </Text>
+          <Pressable accessibilityLabel="Close" onPress={() => onOpenChange(false)}>
+            <Icon name="x" size={18} color={theme.colors.foregroundMuted} />
+          </Pressable>
+        </View>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+Modal.Content = function ModalContent({ children }: { children: ReactNode }) {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>{children}</ScrollView>
+  );
+};
 
 export function SettingsSection({
   title,
@@ -284,7 +383,7 @@ export function SidebarRow({
   onPress,
   trailing,
 }: {
-  icon?: string;
+  icon?: IconSource;
   label?: string;
   onPress(): void;
   trailing?: ReactNode;
@@ -294,6 +393,7 @@ export function SidebarRow({
     <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 8 }}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={label}
         onPress={onPress}
         style={{
           flexGrow: 1,
@@ -306,7 +406,7 @@ export function SidebarRow({
           borderRadius: 6,
         }}
       >
-        <Icon name={icon} size={16} color={theme.colors.foregroundMuted} />
+        <Icon icon={icon} size={16} color={theme.colors.foregroundMuted} />
         <Text numberOfLines={1} style={{ color: theme.colors.foreground, fontSize: 13 }}>
           {label}
         </Text>
