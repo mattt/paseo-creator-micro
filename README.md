@@ -174,8 +174,10 @@ state colors, and all actions and settings.
 Command Center commands pin or unpin workspaces on keys 1-6 and reconnect to the app.
 The composer commands `/keypad-pin-workspace <1-6>` and `/keypad-unpin-workspace`
 also manage pins.
-The sidebar footer shows whether the keypad works;
-click it to see the top keys and the last action.
+The sidebar footer names the agent that key 7 opens next and its state,
+in Paseo's words, such as "Needs input", with a dot in that state's light color;
+it says "Keypad ready" when nothing needs action, and dims when the keypad does not work.
+Click it for a live picture of the keypad, the top-key mode, the underglow, and the full settings.
 
 `mise run run:app` passes these environment variables to the app:
 

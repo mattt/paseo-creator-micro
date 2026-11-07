@@ -12,7 +12,7 @@ import {
   type ActionKey,
 } from "../shared/keypad";
 import type { KeyLight, KeypadStatus } from "../shared/rpc";
-import type { KeypadSettings } from "../shared/settings";
+import { NAVIGATION_KEY_ACTIONS, type KeypadSettings } from "../shared/settings";
 import { joystickDetail, keycapLabel, topKeyLabel } from "./summary";
 
 /** An input chosen in the picture: a top key (keys 0–5), an action key, the dial, or the joystick. */
@@ -26,8 +26,12 @@ interface KeypadPictureProps {
   theme: PluginTheme;
   settings: KeypadSettings;
   status: KeypadStatus | undefined;
-  selection: PictureSelection;
-  onSelect: (selection: PictureSelection) => void;
+  /** The chosen part, or null for none. */
+  selection: PictureSelection | null;
+  /** Called when a part is chosen; without it, the picture only shows the keypad. */
+  onSelect?: (selection: PictureSelection) => void;
+  /** Whether to list what the dial and the joystick do beside the picture; true by default. */
+  legend?: boolean;
 }
 
 // The keypad's measurements, in points, in the proportions of the menu bar app's drawing.
@@ -122,8 +126,11 @@ export function KeypadPicture({
   settings,
   status,
   selection,
-  onSelect,
+  onSelect: select,
+  legend = true,
 }: KeypadPictureProps) {
+  const onSelect = (next: PictureSelection) => select?.(next);
+  const role = select ? ("button" as const) : undefined;
   const ring = appearance(status?.ambient);
   const connected = status?.bridge.state === "connected" && status.keypad?.connected === true;
   const styles = useMemo(() => pictureStyles(), []);
@@ -131,15 +138,15 @@ export function KeypadPicture({
   const isSelected = (cell: Cell): boolean => {
     switch (cell.kind) {
       case "knob":
-        return selection.kind === "dial";
+        return selection?.kind === "dial";
       case "joystick":
-        return selection.kind === "joystick";
+        return selection?.kind === "joystick";
       case "badge":
         return false;
       case "keys": {
         const first = cell.keys[0] ?? -1;
-        if (selection.kind === "workspaceKey") return selection.key === first;
-        if (selection.kind !== "input") return false;
+        if (selection?.kind === "workspaceKey") return selection.key === first;
+        if (selection?.kind !== "input") return false;
         return cell.keys.some((key) => keyActionInput(key) === selection.input);
       }
     }
@@ -167,7 +174,7 @@ export function KeypadPicture({
       const mode = status?.topKeyMode ?? settings.topKeys.mode;
       title = mode === "off" ? "" : topKeyLabel(mode, first, info);
       if (mode === "navigation") {
-        const action = info?.action ?? null;
+        const action = info?.action ?? NAVIGATION_KEY_ACTIONS[first] ?? null;
         title = action ? keycapLabel(action) : title;
       }
       description = `${keyName(first)}: ${topKeyLabel(mode, first, info)}${info?.pinned ? ", pinned" : ""}`;
@@ -208,7 +215,8 @@ export function KeypadPicture({
     return (
       <Pressable
         key={first}
-        accessibilityRole="button"
+        accessibilityRole={role}
+        disabled={!select}
         accessibilityLabel={description}
         accessibilityState={{ selected }}
         onPress={onPress}
@@ -239,7 +247,8 @@ export function KeypadPicture({
     return (
       <Pressable
         key="knob"
-        accessibilityRole="button"
+        accessibilityRole={role}
+        disabled={!select}
         accessibilityLabel={`Dial: turn left to ${ACTIONS[dial.dialCounterclockwise.action].label}, turn right to ${ACTIONS[dial.dialClockwise.action].label}, click to ${ACTIONS[dial.dialPress.action].label}`}
         accessibilityState={{ selected }}
         onPress={() => onSelect({ kind: "dial" })}
@@ -259,7 +268,8 @@ export function KeypadPicture({
     return (
       <Pressable
         key="joystick"
-        accessibilityRole="button"
+        accessibilityRole={role}
+        disabled={!select}
         accessibilityLabel={
           radial ? "Joystick: radial menu" : "Joystick: a prompt for each direction"
         }
@@ -350,7 +360,9 @@ export function KeypadPicture({
           ))}
         </View>
       </View>
-      <Legend theme={theme} settings={settings} selection={selection} onSelect={onSelect} />
+      {legend ? (
+        <Legend theme={theme} settings={settings} selection={selection} onSelect={select} />
+      ) : null}
     </View>
   );
 }
@@ -364,8 +376,8 @@ function Legend({
 }: {
   theme: PluginTheme;
   settings: KeypadSettings;
-  selection: PictureSelection;
-  onSelect: (selection: PictureSelection) => void;
+  selection: PictureSelection | null;
+  onSelect?: (selection: PictureSelection) => void;
 }) {
   const styles = useMemo(() => legendStyles(theme), [theme]);
   const action = (input: ActionInput) => {
@@ -384,8 +396,9 @@ function Legend({
   );
   const group = (title: string, selected: boolean, onPress: () => void, children: ReactNode) => (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={onSelect ? "button" : undefined}
       accessibilityState={{ selected }}
+      disabled={!onSelect}
       onPress={onPress}
       style={[styles.group, selected ? { borderColor: theme.colors.accent } : null]}
     >
@@ -396,7 +409,7 @@ function Legend({
   const radial = settings.radialMenu;
   return (
     <View style={styles.legend}>
-      {group("Dial", selection.kind === "dial", () => onSelect({ kind: "dial" }), [
+      {group("Dial", selection?.kind === "dial", () => onSelect?.({ kind: "dial" }), [
         line("Turn left", action("dialCounterclockwise")),
         line("Turn right", action("dialClockwise")),
         line("Click", action("dialPress")),
@@ -407,8 +420,8 @@ function Legend({
       ])}
       {group(
         "Joystick",
-        selection.kind === "joystick",
-        () => onSelect({ kind: "joystick" }),
+        selection?.kind === "joystick",
+        () => onSelect?.({ kind: "joystick" }),
         radial.enabled
           ? [
               line(

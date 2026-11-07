@@ -387,8 +387,10 @@ Pins apply to Workspaces and Pinned workspaces modes.
 **Creator Micro: reconnect to Paseo Micro** reconnects immediately,
 replacing a connection that is still waiting for PaseoMicro to answer.
 
-Click the sidebar footer to see what each top key shows
-and the last action.
+The sidebar footer names the agent that key 7 opens next and its state,
+with a dot in that state's light color, or says "Keypad ready".
+Click it to open a modal with a live picture of the keypad,
+the top-key mode, the underglow, and a button that opens these settings.
 
 ## Development
 
