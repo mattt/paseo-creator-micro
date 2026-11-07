@@ -393,12 +393,25 @@ function Highlight({
         margin: -4,
         padding: 2,
       }
-    : {
-        borderLeftWidth: 3,
-        borderLeftColor: on ? accent : "transparent",
-        backgroundColor: on ? tint : "transparent",
-      };
-  return <View style={style}>{children}</View>;
+    : { backgroundColor: on ? tint : "transparent" };
+  return (
+    <View style={style}>
+      {children}
+      {on && !card ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 3,
+            backgroundColor: accent,
+          }}
+        />
+      ) : null}
+    </View>
+  );
 }
 
 const DIAL_INPUTS: readonly { input: ActionInput; label: string }[] = [
