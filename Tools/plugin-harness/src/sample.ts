@@ -1,6 +1,10 @@
 // Made-up keypad status for the harness. The names are samples, not real workspaces.
-import { NAVIGATION_KEY_ACTIONS, type KeypadSettings, type KeyState } from "../../shared/settings";
-import type { KeyLight, KeypadStatus } from "../../shared/rpc";
+import {
+  NAVIGATION_KEY_ACTIONS,
+  type KeypadSettings,
+  type KeyState,
+} from "../../../Plugin/shared/settings";
+import type { KeyLight, KeypadStatus } from "../../../Plugin/shared/rpc";
 
 const WORKSPACES: readonly { title: string; project: string; state: KeyState; agents: number }[] = [
   { title: "Fix login redirect", project: "web-app", state: "needsInput", agents: 2 },

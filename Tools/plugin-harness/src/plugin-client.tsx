@@ -1,7 +1,11 @@
 // Stand-ins for `@getpaseo/plugin/client`: settings kept in memory and RPCs answered
 // with made-up sample data. Nothing here connects to Paseo, the daemon, or the keypad app.
 import { useSyncExternalStore } from "react";
-import { keypadSettings, SettingsSchema, type KeypadSettings } from "../../shared/settings";
+import {
+  keypadSettings,
+  SettingsSchema,
+  type KeypadSettings,
+} from "../../../Plugin/shared/settings";
 import { sampleStatus } from "./sample";
 
 const params = new URLSearchParams(location.search);

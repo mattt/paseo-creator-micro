@@ -76,7 +76,7 @@ run = "npm --prefix Plugin run check"
 
 [tasks."preview:plugin"]
 description = "Serve the plugin's settings screen with sample data at http://127.0.0.1:5288/"
-run = "npm --prefix Plugin/harness ci && npm --prefix Plugin/harness run dev"
+run = "npm --prefix Tools/plugin-harness ci && npm --prefix Tools/plugin-harness run dev"
 raw = true
 
 [tasks."fake-bridge:plugin"]

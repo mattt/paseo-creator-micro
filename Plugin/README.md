@@ -420,19 +420,18 @@ The fake app refuses to start while PaseoMicro already serves the socket.
 Its inputs run real actions in your Paseo daemon.
 
 To see the settings screen and the sidebar without Paseo,
-start the development harness and open <http://127.0.0.1:5288/>:
-
-```sh
-npm --prefix harness ci
-npm --prefix harness run dev
-```
+run `mise run preview:plugin` from the repository root
+and open <http://127.0.0.1:5288/>.
+The development harness in
+[`Tools/plugin-harness/`](../Tools/plugin-harness/) serves them.
 
 It renders the plugin's client components with made-up data
 and stand-ins for Paseo's settings components, which only approximate Paseo's look.
 Query parameters choose the theme (`theme=light`), the top-key mode (`mode=workspaces`),
 the status (`state=waiting`, `disconnected`, or `layer`), the radial menu (`radial=off`),
 and parts to press (`click=Dial`).
-It connects to nothing, and the plugin package does not include it.
+It connects to nothing and lives outside `Plugin/`, so the plugin does not ship it.
+Run `npm ci` in `Plugin/` first; the harness uses the plugin's React.
 
 [bridge-protocol.ts](server/bridge-protocol.ts) and
 [BridgeProtocol.swift](../Sources/PaseoMicroCore/BridgeProtocol.swift)

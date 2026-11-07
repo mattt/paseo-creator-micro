@@ -5,8 +5,8 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { ScrollView, Text, View } from "react-native-web";
-import { KeypadSettingsScreen } from "../../client/settings-screen";
-import { KeypadPopover, KeypadSidebarItem } from "../../client/sidebar-status";
+import { KeypadSettingsScreen } from "../../../Plugin/client/settings-screen";
+import { KeypadPopover, KeypadSidebarItem } from "../../../Plugin/client/sidebar-status";
 import { ThemeContext } from "./plugin-ui";
 
 const params = new URLSearchParams(location.search);
