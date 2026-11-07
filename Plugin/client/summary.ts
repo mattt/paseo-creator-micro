@@ -1,9 +1,14 @@
 import { ACTIONS, type ActionId } from "../shared/actions";
-import type { KeyLight, KeypadInfo, KeypadStatus } from "../shared/rpc";
+import type { ACTION_STATES, KeyLight, KeypadInfo, KeypadStatus } from "../shared/rpc";
 import { NAVIGATION_KEY_ACTIONS, type TopKeyMode } from "../shared/settings";
 
 /** One line that says whether the keypad works, and what to do when it does not. */
 export function summarize(status: KeypadStatus | undefined): string {
+  return problem(status) ?? "Keypad ready";
+}
+
+/** What keeps the keypad from working, in a few words, or null when it works. */
+function problem(status: KeypadStatus | undefined): string | null {
   if (!status) return "Checking keypad…";
   const { bridge, keypad } = status;
   if (status.settings.status === "loading") return "Loading keypad settings…";
@@ -12,16 +17,37 @@ export function summarize(status: KeypadStatus | undefined): string {
   if (bridge.state !== "connected") return "Connecting to Paseo Micro…";
   if (!keypad?.connected) return "Keypad not connected";
   if (offInputLayer(keypad)) return `Switch your keypad to ${inputLayerList(keypad.inputLayers)}`;
-  const needs = status.attentionCount;
-  if (needs > 0) return `Keypad: ${needs} ${needs === 1 ? "agent needs" : "agents need"} you`;
-  return "Keypad connected";
+  return null;
 }
 
-/** The summary, in the few words that fit in the sidebar's footer. */
+/** Whether the keypad works: Paseo Micro and the keypad are connected, on an input layer. */
+export function keypadWorks(status: KeypadStatus | undefined): boolean {
+  return problem(status) === null;
+}
+
+/**
+ * The words of Paseo's own sidebar for the states of an agent that needs action:
+ * a finished result that nobody has read is "Ready to review".
+ */
+export const ATTENTION_LABELS: Readonly<Record<(typeof ACTION_STATES)[number], string>> = {
+  needsInput: "Needs input",
+  failed: "Failed",
+  done: "Ready to review",
+};
+
+/**
+ * The few words that fit in the sidebar's footer: what keeps the keypad from working,
+ * else the agent that key 7 opens next with its state, such as "Needs input: Fix login",
+ * else "Keypad ready".
+ */
 export function sidebarLabel(status: KeypadStatus | undefined): string {
-  if (status?.settings.status === "ready" && status.bridge.state === "waiting")
+  if (status?.settings.status === "ready" && status.bridge.state === "waiting") {
     return "Open Paseo Micro";
-  return summarize(status);
+  }
+  const text = problem(status);
+  if (text !== null) return text;
+  const next = status?.nextAgent;
+  return next ? `${ATTENTION_LABELS[next.state]}: ${next.name}` : "Keypad ready";
 }
 
 /**
