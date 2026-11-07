@@ -19,6 +19,11 @@ let paseoLayer2Keymap = #"""
 
 @Suite("Input layers")
 struct InputLayersTests {
+    /// The keymap reads that the keypad received.
+    private func keymapReads(_ keypad: EmulatedKeypad) -> Int {
+        keypad.requests.filter { $0.method == KeypadMethod.readFile }.count
+    }
+
     private func parse(_ text: String) throws -> Set<Int>? {
         InputLayers.parse(keymap: try JSONValue(parsing: Data(text.utf8)))
     }
@@ -141,31 +146,55 @@ struct InputLayersTests {
 
     @Test("The session reads the keymap again for a layer it has not seen, at most once per interval")
     func sessionRereads() async throws {
+        // The test polls the session itself, so that no poll is in flight when it counts reads.
         let keypad = EmulatedKeypad(layer: 4)
-        let session = await startSession(keypad, keymapRefreshInterval: .zero)
-        #expect(await eventually { await session.state.lightsVisible })
+        let session = await startSession(keypad, pollInterval: .seconds(3600), keymapRefreshInterval: .zero)
+        #expect(await waitForConnection(session))
+        #expect(await session.state.lightsVisible)
         #expect(await session.state.inputLayers == [4])
+        #expect(keymapReads(keypad) == 1)
         keypad.setKeymap(paseoLayer2Keymap)
         keypad.setLayer(2)
-        #expect(await eventually { await session.state.inputLayers == [2, 4] })
-        #expect(await eventually { await session.state.lightsVisible })
+        await session.poll()
+        #expect(await session.state.inputLayers == [2, 4])
+        #expect(await session.state.lightsVisible)
+        #expect(keymapReads(keypad) == 2)
         // Layer 2 is now seen, so polls on it do not read the keymap again.
-        let reads = keypad.requests.filter { $0.method == "fs.read" }.count
-        try await Task.sleep(for: .milliseconds(200))
-        #expect(keypad.requests.filter { $0.method == "fs.read" }.count == reads)
+        await session.poll()
+        await session.poll()
+        #expect(keymapReads(keypad) == 2)
         await session.stop()
 
         let limited = EmulatedKeypad(layer: 4)
-        let slow = await startSession(limited, keymapRefreshInterval: .seconds(60))
-        #expect(await eventually { await slow.state.lightsVisible })
+        let slow = await startSession(limited, pollInterval: .seconds(3600), keymapRefreshInterval: .seconds(60))
+        #expect(await waitForConnection(slow))
+        #expect(await slow.state.lightsVisible)
         limited.setKeymap(paseoLayer2Keymap)
         limited.setLayer(2)
-        #expect(await eventually { await slow.state.layer == 2 })
-        try await Task.sleep(for: .milliseconds(200))
+        await slow.poll()
+        #expect(await slow.state.layer == 2)
         #expect(await slow.state.inputLayers == [4])
         #expect(await !slow.state.lightsVisible)
-        #expect(limited.requests.filter { $0.method == "fs.read" }.count == 1)
+        #expect(keymapReads(limited) == 1)
         await slow.stop()
+    }
+
+    @Test("Polls before the keymap read that follows a connection do not read the keymap")
+    func pollsBeforeConnectionRead() async throws {
+        let keypad = EmulatedKeypad(layer: 4)
+        // The session reads the keymap after the version, so holding the version delays that read.
+        keypad.holdReplies(to: [KeypadMethod.version])
+        let session = await startSession(keypad, pollInterval: .seconds(3600))
+        #expect(await eventually { await session.state.connected })
+        await session.poll()
+        #expect(await session.state.layer == 4)
+        #expect(keymapReads(keypad) == 0)
+        keypad.releaseHeldReplies()
+        await session.waitForConnection()
+        #expect(keymapReads(keypad) == 1)
+        await session.poll()
+        #expect(keymapReads(keypad) == 1)
+        await session.stop()
     }
 
     @Test("The session sends the lights again when the keypad returns to any input layer")
