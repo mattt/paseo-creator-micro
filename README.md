@@ -71,6 +71,15 @@ Open Paseo and **Settings > Plugins > Creator Micro > Keypad**.
 Opening the settings gives the plugin a daemon connection.
 Quit the ChatGPT app to prevent it from acting on the same keypad inputs.
 
+The menu shows the keypad's status, only the warnings that you can act on,
+and a drawing of the keypad whose lights follow the lights that the app keeps on it.
+The app does not read lights back from the keypad,
+and it shows the keypad's effects without matching their timing.
+The header always shows how the keypad is connected, over USB or Bluetooth, and its battery charge.
+Hold Option as it opens, or while it is open, to see each key's number,
+the firmware, layer, lighting, last input, connected programs, and the MCP address.
+A dashed outline marks a key that has no light of its own on the current layer.
+
 ### Keypad layers and experimental features
 
 Switch to the stock "ChatGPT" layer (layer 4) for keys and dial.
@@ -159,17 +168,18 @@ state colors, and all actions and settings.
 Command Center commands pin or unpin workspaces on keys 1-6 and reconnect to the app.
 The composer commands `/keypad-pin-workspace <1-6>` and `/keypad-unpin-workspace`
 also manage pins.
-The sidebar footer shows the connection, last input, and last action.
+The sidebar footer shows whether the keypad works;
+click it to see the top keys and the last action.
 
 `mise run run:app` passes these environment variables to the app:
 
 | Variable | Effect |
 | --- | --- |
-| `PASEO_MICRO_EMULATED=1` | Use the emulated keypad; the menu also has a toggle |
+| `PASEO_MICRO_EMULATED=1` | Use the emulated keypad, with its controls in the menu |
 | `PASEO_MICRO_MCP_PORT` | Override port 7655, or the `mcpPort` user default |
 | `PASEO_MICRO_BRIDGE_SOCKET` | Override the bridge socket path |
 
-Set the same socket path in the plugin's Connection settings if you change it.
+Set the same socket path in the plugin's Advanced settings if you change it.
 The plugin runs `paseo` from `PATH`, else from
 `/Applications/Paseo.app/Contents/Resources/bin/paseo`, unless you set its path.
 It runs the CLI with arguments, without a shell.
@@ -225,7 +235,7 @@ build/PaseoMicro.app/Contents/MacOS/micro clear
 - If keys do nothing, check that the app is connected, the keypad is on an input layer,
   and Paseo has connected to the plugin.
   Open the plugin settings and check the sidebar footer for errors.
-- If lights pause, check the app's Lighting row.
+- If lights pause, hold Option while the app's menu is open and check Lighting.
   While ChatGPT runs, Paseo Micro pauses writes on the layer named "ChatGPT"
   (layer 4 if no name is found).
   On other input layers it repaints every 30 seconds because ChatGPT resets lights.
@@ -235,17 +245,19 @@ build/PaseoMicro.app/Contents/MacOS/micro clear
   If permission is already enabled, turn it off and on again.
   If Escape cannot cancel the radial menu, follow the menu's Input Monitoring warning.
 - If scrolling reaches the wrong part of Paseo, adjust its position in Scrolling settings.
-- If the bridge or MCP cannot start, the app's menu shows the error.
+- If the bridge cannot start, the app's menu says so.
+  Hold Option while the menu is open to see the bridge or MCP error in Details.
   Check for another app instance or an occupied port.
   The app refuses to replace a socket path that contains an ordinary file.
 
-With an emulated keypad, click a key in the menu or use its dial and joystick controls.
+With `PASEO_MICRO_EMULATED=1`, click a key in the menu or use its dial and joystick controls.
 
 ## Development
 
 `Sources/CreatorMicro/` contains the HID protocol, transport, and emulated keypad.
 `Sources/PaseoMicroCore/` contains the keypad session, lighting, bridge, and MCP server.
-`Sources/PaseoMicro/` is the menu bar app; `Sources/micro/` is the bridge client.
+`Sources/PaseoMicro/` is the menu bar app and `Sources/PaseoMicroMenu/` its menu's views;
+`Sources/micro/` is the bridge client.
 `Tests/` contains the Swift tests, `App/` contains the bundle metadata and icon,
 `Scripts/app.sh` builds and signs the app, and `Plugin/` contains the Paseo plugin.
 
@@ -270,6 +282,7 @@ Paseo compiles the TypeScript plugin; there is no separate plugin build step.
 ```sh
 mise run install:plugin       # Install plugin development dependencies from the lockfile.
 mise run check                # Check Swift and the plugin.
+mise run render:menu          # Render the menu's sample states to build/menu-previews/.
 mise run check:swift          # Lint, build, and test Swift.
 mise run check:plugin         # Check plugin format, lint, types, and tests.
 mise run format:swift         # Format Swift sources.

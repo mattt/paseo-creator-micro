@@ -48,13 +48,13 @@ export const ACTION_INPUTS = [
 export type ActionInput = (typeof ACTION_INPUTS)[number];
 
 export const ACTION_INPUT_LABELS: Readonly<Record<ActionInput, string>> = {
-  ACT06: "Key 7 (ACT06)",
-  ACT07: "Key 8 (ACT07)",
-  ACT08: "Key 9 (ACT08)",
-  ACT09: "Key 10 (ACT09)",
-  ACT10: "Key 11 (ACT10)",
-  ACT11: "Key 12 (ACT11)",
-  ACT12: "Key 13 (ACT12)",
+  ACT06: "Key 7",
+  ACT07: "Key 8",
+  ACT08: "Key 9",
+  ACT09: "Key 10",
+  ACT10: "Key 11",
+  ACT11: "Key 12",
+  ACT12: "Key 13",
   dialClockwise: "Dial clockwise",
   dialCounterclockwise: "Dial counterclockwise",
   dialPress: "Dial click",
@@ -99,6 +99,12 @@ export function isActionKey(input: ActionInput): input is ActionKey {
 /** The key index of an action key, such as 11 for `ACT11`. */
 export function actionKeyIndex(input: ActionKey): number {
   return Number(input.slice(3));
+}
+
+/** The name of one or more keys for people, counted from 1, such as `Key 4` or `Keys 11 + 12`. */
+export function keyName(...keys: readonly number[]): string {
+  const numbers = keys.map((key) => key + 1).join(" + ");
+  return keys.length === 1 ? `Key ${numbers}` : `Keys ${numbers}`;
 }
 
 /** The firmware code of a key, such as `AG03`, `ACT11`, or `AG15` for a key beyond the keypad's 13. */

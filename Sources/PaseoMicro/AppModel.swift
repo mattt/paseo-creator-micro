@@ -2,6 +2,7 @@ import AppKit
 import CreatorMicro
 import Observation
 import PaseoMicroCore
+import PaseoMicroMenu
 
 /// The app's state, for the menu.
 ///
@@ -37,20 +38,9 @@ final class AppModel {
     /// The app's login item.
     let launchAtLogin = LaunchAtLogin()
 
-    /// Whether the emulated keypad is forced by the `PASEO_MICRO_EMULATED` environment variable.
-    let emulationForced: Bool
+    /// Whether the app uses the emulated keypad, which the `PASEO_MICRO_EMULATED` environment variable turns on.
+    let usesEmulator: Bool
 
-    /// Whether the app uses the emulated keypad.
-    var usesEmulator: Bool {
-        get { emulationForced || UserDefaults.standard.bool(forKey: Self.emulatorKey) }
-        set {
-            guard !emulationForced, newValue != usesEmulator else { return }
-            UserDefaults.standard.set(newValue, forKey: Self.emulatorKey)
-            Task { await restart() }
-        }
-    }
-
-    private static let emulatorKey = "useEmulatedKeypad"
     private static let portKey = "mcpPort"
 
     private var session: KeypadSession?
@@ -68,7 +58,6 @@ final class AppModel {
     private var tasks: [Task<Void, Never>] = []
     private var servers: [Task<Void, Never>] = []
     private var observers: [any NSObjectProtocol] = []
-    private var restarting = false
     private var chatGPT = ChatGPTProcesses()
     /// What the session last heard about ChatGPT, from ``chatGPTReachesKeypad``.
     private var sessionChatGPTRunning = false
@@ -79,7 +68,7 @@ final class AppModel {
 
     init() {
         let environment = ProcessInfo.processInfo.environment
-        emulationForced = ["1", "true", "yes"].contains(environment["PASEO_MICRO_EMULATED"]?.lowercased() ?? "")
+        usesEmulator = ["1", "true", "yes"].contains(environment["PASEO_MICRO_EMULATED"]?.lowercased() ?? "")
         observeWorkspace()
         launchAtLogin.enableOnFirstInstalledRun()
         Task { await start() }
@@ -90,6 +79,26 @@ final class AppModel {
         if !keypad.connected { return .disconnected }
         if keypad.lightsPaused || !keypad.lightsVisible { return .attention }
         return .connected
+    }
+
+    /// What the menu shows.
+    var menuState: MenuState {
+        var state = MenuState(keypad: keypad, lights: lights)
+        state.lastInput = lastInput
+        state.clients = bridgeClients.map { client in
+            [client.processName, client.processID.map { "pid \($0)" }].compactMap(\.self).joined(separator: " ")
+        }
+        state.bridgeError = bridgeError
+        state.mcpURL = mcpURL
+        state.mcpError = mcpError
+        state.accessibilityTrusted = accessibilityTrusted
+        state.escapeTapProblem = escapeTapProblem
+        state.launchAtLogin = launchAtLogin.isEnabled
+        state.launchAtLoginAvailable = launchAtLogin.isInstalled || launchAtLogin.isEnabled
+        state.launchAtLoginNeedsApproval = launchAtLogin.needsApproval
+        state.launchAtLoginError = launchAtLogin.error
+        state.paseoInstalled = AppInfo.paseo != nil
+        return state
     }
 
     /// The MCP port: the `PASEO_MICRO_MCP_PORT` environment variable,
@@ -223,15 +232,6 @@ final class AppModel {
         session = nil
         bridgeClients = []
         keypad = .disconnected
-    }
-
-    private func restart() async {
-        guard !restarting else { return }
-        restarting = true
-        defer { restarting = false }
-        await shutdown()
-        lastInput = nil
-        await start()
     }
 
     /// Quits the app after it releases the keypad and the socket.

@@ -22,8 +22,6 @@
 #
 # Both executables are signed with the identifier co.dododo.paseo-micro and the same certificate,
 # so that the Accessibility permission survives rebuilds and the move to /Applications.
-# The Info.plist's PaseoMicroRepository is the repository's main checkout,
-# where the menu finds README.md.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -63,7 +61,6 @@ assemble() {
     cp App/Info.plist "$app/Contents/Info.plist"
     plutil -replace CFBundleShortVersionString -string "$version" "$app/Contents/Info.plist"
     plutil -replace CFBundleVersion -string "$(git rev-list --count HEAD)" "$app/Contents/Info.plist"
-    plutil -replace PaseoMicroRepository -string "$(repository)" "$app/Contents/Info.plist"
     local partial minos
     partial="$(mktemp -d)"
     minos="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' App/Info.plist)"
@@ -90,18 +87,6 @@ assemble() {
     cp "$bin/micro" "$app/Contents/MacOS/micro"
     cp -R "$bin/paseo-creator-micro_PaseoMicro.bundle" "$app/Contents/Resources/"
     echo "Assembled $app (version $version)"
-}
-
-# The repository's main checkout, also when this runs in a linked worktree,
-# so that an installed app does not point to a worktree that goes away.
-repository() {
-    local common
-    common="$(git rev-parse --path-format=absolute --git-common-dir)"
-    if [ "$(basename "$common")" = ".git" ]; then
-        dirname "$common"
-    else
-        git rev-parse --show-toplevel
-    fi
 }
 
 sign() {

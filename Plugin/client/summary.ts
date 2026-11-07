@@ -4,33 +4,24 @@ import { NAVIGATION_KEY_ACTIONS, type TopKeyMode } from "../shared/settings";
 
 /** One line that says whether the keypad works, and what to do when it does not. */
 export function summarize(status: KeypadStatus | undefined): string {
-  if (!status) return "Checking the keypad";
+  if (!status) return "Checking keypad…";
   const { bridge, keypad } = status;
-  if (status.settings.status === "loading") return "Loading the keypad settings";
+  if (status.settings.status === "loading") return "Loading keypad settings…";
   if (status.settings.status === "error") return "Keypad actions off: settings error";
-  if (bridge.state === "waiting") return "Keypad app not running";
-  if (bridge.state !== "connected") return "Connecting to the keypad app";
+  if (bridge.state === "waiting") return "Open Paseo Micro to use your keypad";
+  if (bridge.state !== "connected") return "Connecting to Paseo Micro…";
   if (!keypad?.connected) return "Keypad not connected";
-  if (offInputLayer(keypad)) {
-    return `Keypad on layer ${keypad.layer}, not ${inputLayerList(keypad.inputLayers)}`;
-  }
-  if (!status.paseoAttached) return "Keypad ready; waiting for workspaces";
+  if (offInputLayer(keypad)) return `Switch your keypad to ${inputLayerList(keypad.inputLayers)}`;
   const needs = status.attentionCount;
   if (needs > 0) return `Keypad: ${needs} ${needs === 1 ? "agent needs" : "agents need"} you`;
-  switch (status.topKeyMode) {
-    case "workspaces":
-    case "pinned": {
-      const workspaces = status.keys.filter((key) => key.workspaceId !== null).length;
-      return `Keypad: ${workspaces} ${workspaces === 1 ? "workspace" : "workspaces"}`;
-    }
-    case "recentAgents": {
-      const agents = status.keys.filter((key) => key.agentId !== null).length;
-      return `Keypad: ${agents} ${agents === 1 ? "agent" : "agents"}`;
-    }
-    case "navigation":
-    case "off":
-      return "Keypad ready";
-  }
+  return "Keypad connected";
+}
+
+/** The summary, in the few words that fit in the sidebar's footer. */
+export function sidebarLabel(status: KeypadStatus | undefined): string {
+  if (status?.settings.status === "ready" && status.bridge.state === "waiting")
+    return "Open Paseo Micro";
+  return summarize(status);
 }
 
 /**

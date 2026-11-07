@@ -3,6 +3,7 @@ import {
   inputLayerList,
   joystickDetail,
   offInputLayer,
+  sidebarLabel,
   summarize,
   topKeyLabel,
 } from "../client/summary";
@@ -48,40 +49,34 @@ describe("summarize", () => {
     );
   });
 
-  const key = {
-    kind: "workspace" as const,
-    agentId: null,
-    action: null,
-    title: "w",
-    project: "p",
-    agentCount: 1,
-    state: "done" as const,
-    pinned: false,
-    selected: false,
-    enabled: true,
-    light: { color: "#000000", effect: "off" as const, brightness: 0 },
-  };
-
-  it("counts the workspaces on the keys when no agent needs you", () => {
-    const keys = [
-      { ...key, key: 0, workspaceId: "w1" },
-      { ...key, key: 1, workspaceId: "w2" },
-      { ...key, key: 2, workspaceId: null },
-    ];
-    expect(summarize(status({ topKeyMode: "workspaces", keys }))).toBe("Keypad: 2 workspaces");
-    expect(summarize(status({ topKeyMode: "pinned", keys: keys.slice(1) }))).toBe(
-      "Keypad: 1 workspace",
-    );
+  it("says only that the keypad is connected when no agent needs you", () => {
+    for (const topKeyMode of [
+      "navigation",
+      "workspaces",
+      "pinned",
+      "recentAgents",
+      "off",
+    ] as const) {
+      expect(summarize(status({ topKeyMode }))).toBe("Keypad connected");
+    }
+    expect(summarize(status({ paseoAttached: false }))).toBe("Keypad connected");
   });
 
-  it("counts the agents on the keys in the recent agents mode, and says ready otherwise", () => {
-    const keys = [
-      { ...key, kind: "agent" as const, key: 0, workspaceId: "w", agentId: "a" },
-      { ...key, kind: "agent" as const, key: 1, workspaceId: null, agentId: null },
-    ];
-    expect(summarize(status({ topKeyMode: "recentAgents", keys }))).toBe("Keypad: 1 agent");
-    expect(summarize(status({ topKeyMode: "navigation" }))).toBe("Keypad ready");
-    expect(summarize(status({ topKeyMode: "off" }))).toBe("Keypad ready");
+  it("asks people to open the app when it is not running", () => {
+    const bridge = {
+      state: "waiting" as const,
+      socketPath: "/tmp/b.sock",
+      appVersion: null,
+      error: "ENOENT",
+    };
+    expect(summarize(status({ bridge }))).toBe("Open Paseo Micro to use your keypad");
+    expect(sidebarLabel(status({ bridge }))).toBe("Open Paseo Micro");
+  });
+
+  it("names no technical detail", () => {
+    const off = { ...status().keypad!, layer: 1, inputLayers: [4], lightsVisible: false };
+    const text = [summarize(status()), summarize(status({ keypad: off }))].join(" ");
+    expect(text).not.toMatch(/socket|bridge|firmware|USB|0\.6\.3/i);
   });
 
   it("puts a settings error first", () => {
@@ -101,14 +96,14 @@ describe("input layers", () => {
 
   it("says which layers the keypad needs when it is on another one", () => {
     const off = { ...keypad, layer: 1, inputLayers: [2, 4], lightsVisible: false };
-    expect(summarize(status({ keypad: off }))).toBe("Keypad on layer 1, not layer 2 or 4");
+    expect(summarize(status({ keypad: off }))).toBe("Switch your keypad to layer 2 or 4");
     expect(offInputLayer(off)).toBe(true);
   });
 
   it("accepts any input layer, such as a Paseo layer 2", () => {
     const layer2 = { ...keypad, layer: 2, inputLayers: [2, 4], lightsVisible: true };
     expect(offInputLayer(layer2)).toBe(false);
-    expect(summarize(status({ keypad: layer2 }))).toBe("Keypad ready");
+    expect(summarize(status({ keypad: layer2 }))).toBe("Keypad connected");
   });
 
   it("counts layer 4 alone for an app that does not report the layers", () => {

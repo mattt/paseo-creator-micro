@@ -1,16 +1,7 @@
 import AppKit
 import CoreGraphics
 import PaseoMicroCore
-
-/// Why Escape cannot close the radial menu: the app could not install its keyboard event tap.
-enum EscapeTapProblem: Hashable {
-    /// The app lacks the Accessibility permission, which a tap needs to see key events.
-    case accessibility
-    /// The app has the Accessibility permission but not Input Monitoring.
-    case inputMonitoring
-    /// macOS refused the tap for another reason.
-    case refused
-}
+import PaseoMicroMenu
 
 /// Drops Escape on the Mac's keyboard while the radial menu shows, and cancels the menu instead.
 ///
