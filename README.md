@@ -151,8 +151,10 @@ Subagents are excluded unless **Include subagents** is enabled.
 ## Configuration
 
 Open **Settings > Plugins > Creator Micro** or
-**Creator Micro: keypad settings** in Command Center.
-Assign keys, key groups, dial gestures, and radial choices in the keypad picture.
+**Creator Micro: open keypad settings** in Command Center.
+The settings show a picture of the keypad whose lights follow the real unit.
+Choose a key, the knob, or the joystick in the picture to assign its action,
+double-wide keycaps, dial gestures, and radial choices.
 Settings control lighting, scrolling, push-to-talk submission, and subagent inclusion.
 Without a selected workspace, actions target the next agent that needs action,
 else the most recently active agent; this is configurable.

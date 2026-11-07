@@ -8,7 +8,7 @@ import { keyName } from "../shared/keypad";
 import { reconnectRpc } from "../shared/rpc";
 import { KEY_STATE_LABELS } from "../shared/settings";
 import { useKeypadStatus } from "./status";
-import { lightSwatch, sidebarLabel, summarize, topKeyLabel } from "./summary";
+import { connectionDetail, lightSwatch, sidebarLabel, summarize, topKeyLabel } from "./summary";
 
 /** A sidebar footer row that shows whether the keypad works and opens its details. */
 export function KeypadSidebarItem({ theme, host, openPopover }: PluginSidebarItemProps) {
@@ -29,17 +29,29 @@ export function KeypadSidebarItem({ theme, host, openPopover }: PluginSidebarIte
   );
 }
 
-function KeypadPopover({ theme, host }: PluginPopoverProps) {
+export function KeypadPopover({ theme, host }: PluginPopoverProps) {
   const status = useKeypadStatus(host.id);
   const reconnect = useRpc(reconnectRpc);
   const styles = useMemo(
     () => ({
       body: { padding: 16, gap: 8, minWidth: 280 },
-      title: { color: theme.colors.foreground, fontWeight: "600" as const },
+      title: { color: theme.colors.foreground, fontSize: 14, fontWeight: "600" as const },
+      heading: {
+        marginTop: 6,
+        color: theme.colors.foregroundMuted,
+        fontSize: 11,
+        fontWeight: "600" as const,
+      },
       text: { color: theme.colors.foreground, fontSize: 13 },
       muted: { color: theme.colors.foregroundMuted, fontSize: 12 },
       row: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8 },
-      swatch: { width: 10, height: 10, borderRadius: 2 },
+      swatch: {
+        width: 10,
+        height: 10,
+        borderRadius: 2,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+      },
       button: {
         marginTop: 4,
         paddingVertical: 6,
@@ -56,7 +68,12 @@ function KeypadPopover({ theme, host }: PluginPopoverProps) {
   return (
     <View style={styles.body}>
       <Text style={styles.title}>{summarize(data)}</Text>
-      {data?.settings.error ? <Text style={styles.muted}>{data.settings.error}</Text> : null}
+      {data?.settings.error ? (
+        <Text style={styles.muted}>{data.settings.error}</Text>
+      ) : connectionDetail(data) ? (
+        <Text style={styles.muted}>{connectionDetail(data)}</Text>
+      ) : null}
+      {data?.keys.length ? <Text style={styles.heading}>Top keys</Text> : null}
       {data?.keys.map((key) => (
         <View key={key.key} style={styles.row}>
           <View
@@ -79,7 +96,9 @@ function KeypadPopover({ theme, host }: PluginPopoverProps) {
           {ACTIONS[data.lastAction.action].label}: {data.lastAction.message}
         </Text>
       ) : null}
-      <Text style={styles.muted}>Change the keys in Settings › Plugins › Creator Micro.</Text>
+      <Text style={styles.muted}>
+        To change what the keys do, open Settings › Plugins › Creator Micro.
+      </Text>
       {data?.bridge.state === "waiting" ? (
         <Pressable
           accessibilityRole="button"
