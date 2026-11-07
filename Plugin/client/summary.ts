@@ -78,3 +78,44 @@ export function joystickDetail(action: ActionId, text: string): string {
   const prompt = text.trim().replace(/\s+/g, " ");
   return prompt === "" ? "No prompt" : `"${prompt}"`;
 }
+
+/**
+ * How the keypad connects and its charge, as the menu bar app's header shows them,
+ * such as "Connected via USB · 64% battery"; null while the keypad is not connected.
+ */
+export function connectionDetail(status: KeypadStatus | undefined): string | null {
+  const keypad = status?.keypad;
+  if (status?.bridge.state !== "connected" || !keypad?.connected) return null;
+  const parts = [keypad.transport ? `Connected via ${keypad.transport}` : "Connected"];
+  if (keypad.battery !== null) {
+    parts.push(`${Math.round(keypad.battery)}% battery${keypad.charging ? ", charging" : ""}`);
+  }
+  return parts.join(" · ");
+}
+
+/** Short names for actions, to fit on a keycap in the picture. */
+const KEYCAP_LABELS: Partial<Record<ActionId, string>> = {
+  none: "",
+  nextActionableAgent: "Next agent",
+  nextStuckWorkspace: "Next waiting workspace",
+  navigateBack: "Back",
+  navigateForward: "Forward",
+  previousWorkspace: "Previous workspace",
+  nextWorkspace: "Next workspace",
+  newAgent: "New agent",
+  focusComposer: "Composer",
+  jumpToBottom: "Jump to bottom",
+  toggleVoiceMode: "Voice mode",
+  approvePermission: "Approve",
+  denyPermission: "Deny",
+  stopAgent: "Stop",
+  selectNextWorkspace: "Select next",
+  selectPreviousWorkspace: "Select previous",
+  openSelectedWorkspace: "Open selected",
+  sendPrompt: "Prompt",
+};
+
+/** An action's name on a keycap: a short form of its label. */
+export function keycapLabel(action: ActionId): string {
+  return KEYCAP_LABELS[action] ?? ACTIONS[action].label;
+}

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  connectionDetail,
   inputLayerList,
   joystickDetail,
+  keycapLabel,
   offInputLayer,
   sidebarLabel,
   summarize,
@@ -145,5 +147,31 @@ describe("topKeyLabel", () => {
     expect(topKeyLabel("workspaces", 0, undefined)).toBe("No workspace");
     expect(topKeyLabel("pinned", 0, undefined)).toBe("Not pinned");
     expect(topKeyLabel("off", 0, undefined)).toBe("Off");
+  });
+});
+
+describe("connectionDetail", () => {
+  it("says how the keypad connects and its charge", () => {
+    expect(connectionDetail(status())).toBe("Connected via USB · 64% battery");
+    const charging = { ...status().keypad!, transport: "Bluetooth", charging: true };
+    expect(connectionDetail(status({ keypad: charging }))).toBe(
+      "Connected via Bluetooth · 64% battery, charging",
+    );
+    const unknown = { ...status().keypad!, transport: null, battery: null };
+    expect(connectionDetail(status({ keypad: unknown }))).toBe("Connected");
+  });
+
+  it("says nothing while the keypad is not connected", () => {
+    expect(connectionDetail(undefined)).toBeNull();
+    const off = { ...status().keypad!, connected: false };
+    expect(connectionDetail(status({ keypad: off }))).toBeNull();
+  });
+});
+
+describe("keycapLabel", () => {
+  it("shortens long action names and keeps short ones", () => {
+    expect(keycapLabel("nextActionableAgent")).toBe("Next agent");
+    expect(keycapLabel("pushToTalk")).toBe("Push to talk");
+    expect(keycapLabel("none")).toBe("");
   });
 });
