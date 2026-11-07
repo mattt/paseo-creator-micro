@@ -120,30 +120,3 @@ export function connectionDetail(status: KeypadStatus | undefined): string | nul
   }
   return parts.join(" · ");
 }
-
-/** Short names for actions, to fit on a keycap in the picture. */
-const KEYCAP_LABELS: Partial<Record<ActionId, string>> = {
-  none: "",
-  nextActionableAgent: "Next agent",
-  nextStuckWorkspace: "Next waiting workspace",
-  navigateBack: "Back",
-  navigateForward: "Forward",
-  previousWorkspace: "Previous workspace",
-  nextWorkspace: "Next workspace",
-  newAgent: "New agent",
-  focusComposer: "Composer",
-  jumpToBottom: "Jump to bottom",
-  toggleVoiceMode: "Voice mode",
-  approvePermission: "Approve",
-  denyPermission: "Deny",
-  stopAgent: "Stop",
-  selectNextWorkspace: "Select next",
-  selectPreviousWorkspace: "Select previous",
-  openSelectedWorkspace: "Open selected",
-  sendPrompt: "Prompt",
-};
-
-/** An action's name on a keycap: a short form of its label. */
-export function keycapLabel(action: ActionId): string {
-  return KEYCAP_LABELS[action] ?? ACTIONS[action].label;
-}

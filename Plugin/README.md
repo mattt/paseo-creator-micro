@@ -213,8 +213,8 @@ Inputs without a release, such as dial turns, toggle dictation.
 The dial click acts on release, so binding it to push to talk also toggles dictation.
 
 Grouped keys use the first key's binding.
-In the keypad picture, select a key and turn on **Double-wide keycap**
-to join it with the key to its right, or turn it off to separate them.
+Under **Advanced > Double-wide keycaps**, turn on a pair of neighboring keys
+to join them under one keycap, or turn it off to separate them.
 The `keyGroups` setting stores these groups.
 
 Plain and fast scroll steps that arrive while a scroll waits
@@ -270,7 +270,7 @@ Approve and Deny in the radial menu require that target's own pending request
 and never answer another agent's request.
 Actions are checked again before execution.
 
-Select the joystick in the keypad picture to edit each choice's icon,
+Under **Joystick**, select a choice in the ring to edit its icon,
 label, color, action, and prompt, or to turn the menu off.
 Icons come from the supplied SF Symbols list.
 The [default binding guide](../README.md#keys-and-default-bindings)
@@ -305,12 +305,15 @@ The plugin's settings are grouped as follows:
 
 | Group                   | Controls                                                                                                                         |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Keypad                  | Plain status, a picture of the keypad, and the selected key's, dial's, or joystick's bindings, key groups, and radial choices    |
-| Top keys                | Top-key mode and single-tap opening                                                                                              |
+| Keypad                  | Plain status, and a numbered picture of the keypad whose parts highlight their rows below                                        |
+| Keys 1 to 6             | Top-key mode, single-tap opening, what each top key shows now, and Unpin                                                         |
+| Keys 7 to 13            | Each keycap's action and prompt                                                                                                  |
+| Dial                    | The action of each turn, held turn, and click                                                                                    |
+| Joystick                | The radial menu and its choices, or each direction's action                                                                      |
 | Lights                  | Underglow, selection brightness, and one editor for the style of each state, navigation, key backlight, meter, and failure light |
 | Agents                  | The target used without a selected workspace, and subagent inclusion                                                             |
 | Scrolling and dictation | Normal and fast lines per step, Return on release, and the delay after dictation stops                                           |
-| Advanced                | Collapsed: action-key lights, scroll position, default actions, CLI path, socket path, bundle ID, Reconnect, and keypad details  |
+| Advanced                | Collapsed: double-wide keycaps, action-key lights, scroll position, default actions, connection settings, and keypad details     |
 
 **Underglow** can show the next agent that needs action,
 light yellow while any agent needs input, or stay off.
@@ -387,10 +390,11 @@ Pins apply to Workspaces and Pinned workspaces modes.
 **Creator Micro: reconnect to Paseo Micro** reconnects immediately,
 replacing a connection that is still waiting for PaseoMicro to answer.
 
-The sidebar footer names the agent that key 7 opens next and its state,
+The sidebar footer shows the state of the agent that key 7 opens next, such as "Needs input",
 with a dot in that state's light color, or says "Keypad ready".
-Click it to open a modal with a live picture of the keypad,
-the top-key mode, the underglow, and a button that opens these settings.
+Click it to open a modal with that agent's name, a live picture of the keypad,
+a numbered list of what each key does, the top-key mode, the underglow,
+and a button that opens these settings.
 
 ## Development
 

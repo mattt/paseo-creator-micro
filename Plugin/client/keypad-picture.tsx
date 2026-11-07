@@ -1,19 +1,12 @@
 import type { PluginTheme } from "@getpaseo/plugin";
-import { useMemo, type ReactNode } from "react";
+import { useMemo } from "react";
 import { Pressable, Text, View, type ViewStyle } from "react-native";
 import { ACTIONS } from "../shared/actions";
 import { groupLeader, groupOf } from "../shared/key-groups";
-import {
-  ACTION_INPUT_LABELS,
-  JOYSTICK_DIRECTIONS,
-  keyActionInput,
-  keyName,
-  type ActionInput,
-  type ActionKey,
-} from "../shared/keypad";
+import { keyActionInput, keyName, type ActionKey } from "../shared/keypad";
 import type { KeyLight, KeypadStatus } from "../shared/rpc";
-import { NAVIGATION_KEY_ACTIONS, type KeypadSettings } from "../shared/settings";
-import { joystickDetail, keycapLabel, topKeyLabel } from "./summary";
+import type { KeypadSettings } from "../shared/settings";
+import { topKeyLabel } from "./summary";
 
 /** An input chosen in the picture: a top key (keys 0–5), an action key, the dial, or the joystick. */
 export type PictureSelection =
@@ -30,8 +23,6 @@ interface KeypadPictureProps {
   selection: PictureSelection | null;
   /** Called when a part is chosen; without it, the picture only shows the keypad. */
   onSelect?: (selection: PictureSelection) => void;
-  /** Whether to list what the dial and the joystick do beside the picture; true by default. */
-  legend?: boolean;
 }
 
 // The keypad's measurements, in points, in the proportions of the menu bar app's drawing.
@@ -127,7 +118,6 @@ export function KeypadPicture({
   status,
   selection,
   onSelect: select,
-  legend = true,
 }: KeypadPictureProps) {
   const onSelect = (next: PictureSelection) => select?.(next);
   const role = select ? ("button" as const) : undefined;
@@ -165,29 +155,18 @@ export function KeypadPicture({
     const first = keys[0] ?? 0;
     const width = KEY * keys.length + GAP * (keys.length - 1);
     const input = keyActionInput(first);
-    let title: string;
     let description: string;
     let light: KeyLight | null | undefined;
     let onPress: () => void;
     if (input === null) {
       const info = status?.keys[first];
       const mode = status?.topKeyMode ?? settings.topKeys.mode;
-      title = mode === "off" ? "" : topKeyLabel(mode, first, info);
-      if (mode === "navigation") {
-        const action = info?.action ?? NAVIGATION_KEY_ACTIONS[first] ?? null;
-        title = action ? keycapLabel(action) : title;
-      }
       description = `${keyName(first)}: ${topKeyLabel(mode, first, info)}${info?.pinned ? ", pinned" : ""}`;
       light = info?.light;
       onPress = () => onSelect({ kind: "workspaceKey", key: first });
     } else {
       const leader = groupLeader(settings.keyGroups, input) as ActionKey;
-      const binding = settings.bindings[leader];
-      title =
-        binding.action === "sendPrompt" && binding.text.trim() !== ""
-          ? binding.text.trim()
-          : keycapLabel(binding.action);
-      description = `${keyName(...keys)}: ${ACTIONS[binding.action].label}`;
+      description = `${keyName(...keys)}: ${ACTIONS[settings.bindings[leader].action].label}`;
       light =
         status?.actionKeys.find((entry) => keys.includes(entry.key))?.light ??
         (status ? settings.lights.keysZone : null);
@@ -231,9 +210,6 @@ export function KeypadPicture({
               : null,
           ]}
         />
-        <Text numberOfLines={3} style={[styles.capLabel, frosted ? styles.frostedText : null]}>
-          {title}
-        </Text>
         <Text style={[styles.capNumber, frosted ? styles.frostedNumber : null]}>
           {keys.map((key) => key + 1).join("–")}
         </Text>
@@ -360,82 +336,6 @@ export function KeypadPicture({
           ))}
         </View>
       </View>
-      {legend ? (
-        <Legend theme={theme} settings={settings} selection={selection} onSelect={select} />
-      ) : null}
-    </View>
-  );
-}
-
-/** What the dial and the joystick do, beside the picture, since their parts carry no labels. */
-function Legend({
-  theme,
-  settings,
-  selection,
-  onSelect,
-}: {
-  theme: PluginTheme;
-  settings: KeypadSettings;
-  selection: PictureSelection | null;
-  onSelect?: (selection: PictureSelection) => void;
-}) {
-  const styles = useMemo(() => legendStyles(theme), [theme]);
-  const action = (input: ActionInput) => {
-    const binding = settings.bindings[input];
-    return binding.action === "sendPrompt"
-      ? joystickDetail(binding.action, binding.text)
-      : ACTIONS[binding.action].label;
-  };
-  const line = (label: string, value: string) => (
-    <View key={label} style={styles.line}>
-      <Text style={styles.term}>{label}</Text>
-      <Text style={styles.value} numberOfLines={3}>
-        {value}
-      </Text>
-    </View>
-  );
-  const group = (title: string, selected: boolean, onPress: () => void, children: ReactNode) => (
-    <Pressable
-      accessibilityRole={onSelect ? "button" : undefined}
-      accessibilityState={{ selected }}
-      disabled={!onSelect}
-      onPress={onPress}
-      style={[styles.group, selected ? { borderColor: theme.colors.accent } : null]}
-    >
-      <Text style={styles.title}>{title}</Text>
-      {children}
-    </Pressable>
-  );
-  const radial = settings.radialMenu;
-  return (
-    <View style={styles.legend}>
-      {group("Dial", selection?.kind === "dial", () => onSelect?.({ kind: "dial" }), [
-        line("Turn left", action("dialCounterclockwise")),
-        line("Turn right", action("dialClockwise")),
-        line("Click", action("dialPress")),
-        line(
-          "Hold and turn",
-          `${action("dialHeldCounterclockwise")}, ${action("dialHeldClockwise")}`,
-        ),
-      ])}
-      {group(
-        "Joystick",
-        selection?.kind === "joystick",
-        () => onSelect?.({ kind: "joystick" }),
-        radial.enabled
-          ? [
-              line(
-                "Radial menu",
-                radial.slots
-                  .filter((slot) => slot.action !== "none")
-                  .map((slot) => slot.label)
-                  .join(", "),
-              ),
-            ]
-          : JOYSTICK_DIRECTIONS.map((direction) =>
-              line(ACTION_INPUT_LABELS[direction].replace("Joystick ", "Push "), action(direction)),
-            ),
-      )}
     </View>
   );
 }
@@ -445,6 +345,7 @@ function pictureStyles() {
     wrap: {
       flexDirection: "row" as const,
       flexWrap: "wrap" as const,
+      justifyContent: "center" as const,
       alignItems: "flex-start" as const,
       gap: 16,
       paddingVertical: 8,
@@ -496,10 +397,8 @@ function pictureStyles() {
       height: KEY,
       borderRadius: CAP_CORNER,
       borderWidth: 1,
-      paddingHorizontal: 6,
-      paddingTop: 6,
-      paddingBottom: 4,
-      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
     },
     dish: {
       position: "absolute" as const,
@@ -512,21 +411,16 @@ function pictureStyles() {
       borderWidth: 1,
       borderColor: "rgba(0,0,0,0.35)",
     },
-    capLabel: {
-      color: "rgba(255,255,255,0.9)",
-      fontSize: 10,
-      lineHeight: 12,
-      letterSpacing: -0.1,
-      fontWeight: "500" as const,
-    },
     capNumber: {
-      alignSelf: "flex-end" as const,
-      color: "rgba(255,255,255,0.45)",
-      fontSize: 10,
+      color: "rgba(255,255,255,0.92)",
+      fontSize: 15,
+      fontWeight: "600" as const,
       fontVariant: ["tabular-nums" as const],
+      textShadowColor: "rgba(0,0,0,0.6)",
+      textShadowRadius: 2,
+      textShadowOffset: { width: 0, height: 1 },
     },
-    frostedText: { color: "rgba(0,0,0,0.85)" },
-    frostedNumber: { color: "rgba(0,0,0,0.55)" },
+    frostedNumber: { color: "rgba(0,0,0,0.85)", textShadowColor: "rgba(255,255,255,0.4)" },
     knob: {
       width: KEY - 6,
       height: KEY - 6,
@@ -582,23 +476,5 @@ function pictureStyles() {
       borderWidth: 1,
       borderColor: "rgba(255,255,255,0.14)",
     },
-  };
-}
-
-function legendStyles(theme: PluginTheme) {
-  return {
-    legend: { flexGrow: 1, flexBasis: 170, gap: 12, paddingTop: 8 },
-    group: {
-      gap: 8,
-      padding: 10,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface2,
-    },
-    title: { color: theme.colors.foreground, fontSize: 13, fontWeight: "600" as const },
-    line: { gap: 1 },
-    term: { color: theme.colors.foregroundMuted, fontSize: 11 },
-    value: { color: theme.colors.foreground, fontSize: 12 },
   };
 }

@@ -24,6 +24,7 @@ import {
   type UnderglowSource,
 } from "../shared/settings";
 import { KEYPAD_ICON } from "./keypad-icon";
+import { KeyLegend } from "./key-legend";
 import { KeypadPicture } from "./keypad-picture";
 import { useKeypadStatus } from "./status";
 import {
@@ -182,14 +183,14 @@ function KeypadModalBody({
           />
         ) : null}
         {settings.status === "ready" ? (
-          <View style={{ alignItems: "center", paddingVertical: 8 }}>
+          <View style={{ gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
             <KeypadPicture
               theme={theme}
               settings={settings.values}
               status={works ? status : undefined}
               selection={null}
-              legend={false}
             />
+            <KeyLegend theme={theme} settings={settings.values} status={status} />
           </View>
         ) : null}
       </SettingsCard>

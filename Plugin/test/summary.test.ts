@@ -3,7 +3,6 @@ import {
   connectionDetail,
   inputLayerList,
   joystickDetail,
-  keycapLabel,
   keypadWorks,
   offInputLayer,
   sidebarLabel,
@@ -190,13 +189,5 @@ describe("connectionDetail", () => {
     expect(connectionDetail(undefined)).toBeNull();
     const off = { ...status().keypad!, connected: false };
     expect(connectionDetail(status({ keypad: off }))).toBeNull();
-  });
-});
-
-describe("keycapLabel", () => {
-  it("shortens long action names and keeps short ones", () => {
-    expect(keycapLabel("nextActionableAgent")).toBe("Next agent");
-    expect(keycapLabel("pushToTalk")).toBe("Push to talk");
-    expect(keycapLabel("none")).toBe("");
   });
 });

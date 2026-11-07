@@ -156,9 +156,10 @@ Subagents are excluded unless **Include subagents** is enabled.
 
 Open **Settings > Plugins > Creator Micro** or
 **Creator Micro: open keypad settings** in Command Center.
-The settings show a picture of the keypad whose lights follow the real unit.
-Choose a key, the knob, or the joystick in the picture to assign its action,
-double-wide keycaps, dial gestures, and radial choices.
+The settings show a picture of the keypad, numbered 1 to 13, whose lights follow the real unit.
+Below it, rows in key order assign each key's action, the dial's gestures, and radial choices;
+choosing a part in the picture highlights its row.
+Double-wide keycaps are under Advanced.
 Settings control lighting, scrolling, push-to-talk submission, and subagent inclusion.
 Without a selected workspace, actions target the next agent that needs action,
 else the most recently active agent; this is configurable.
@@ -174,10 +175,11 @@ state colors, and all actions and settings.
 Command Center commands pin or unpin workspaces on keys 1-6 and reconnect to the app.
 The composer commands `/keypad-pin-workspace <1-6>` and `/keypad-unpin-workspace`
 also manage pins.
-The sidebar footer names the agent that key 7 opens next and its state,
-in Paseo's words, such as "Needs input", with a dot in that state's light color;
+The sidebar footer shows, in Paseo's words, the state of the agent that key 7 opens next,
+such as "Needs input", with a dot in that state's light color;
 it says "Keypad ready" when nothing needs action, and dims when the keypad does not work.
-Click it for a live picture of the keypad, the top-key mode, the underglow, and the full settings.
+Click it for the agent's name, a live picture of the keypad with a numbered list of what each key does,
+the top-key mode, the underglow, and the full settings.
 
 `mise run run:app` passes these environment variables to the app:
 

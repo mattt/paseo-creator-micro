@@ -15,10 +15,10 @@ import {
   SettingsSelect,
   SettingsSwitch,
 } from "@getpaseo/plugin/client/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ACTION_IDS, ACTIONS, type ActionId } from "../shared/actions";
-import { groupOf, joinKeys } from "../shared/key-groups";
+import { groupLeader, groupOf, joinKeys } from "../shared/key-groups";
 import {
   ACTION_INPUT_LABELS,
   ACTION_KEYS,
@@ -26,6 +26,7 @@ import {
   isActionKey,
   JOYSTICK_DIRECTIONS,
   KEY_ROWS,
+  WORKSPACE_KEY_COUNT,
   keyActionInput,
   keyName,
   type ActionInput,
@@ -55,6 +56,7 @@ import {
   type TopKeyMode,
   type UnderglowSource,
 } from "../shared/settings";
+import { actionKeycaps, keycapNumber } from "./key-legend";
 import { KeypadPicture, type PictureSelection } from "./keypad-picture";
 import { unpinKey } from "./pins";
 import { RadialMenuEditor } from "./radial-menu-editor";
@@ -249,7 +251,7 @@ function ReadyScreen({
           ) : null}
           <SettingsRow
             label="Keys"
-            hint="Choose a key, the dial, or the joystick to change what it does."
+            hint="Choose a key, the dial, or the joystick to find its setting below."
           >
             <KeypadPicture
               theme={theme}
@@ -260,54 +262,46 @@ function ReadyScreen({
             />
           </SettingsRow>
         </SettingsCard>
-        <SelectionEditor
-          selection={selection}
-          theme={theme}
-          settings={settings}
-          status={data}
-          save={save}
-        />
         {settings.saveError ? (
           <Text accessibilityRole="alert" style={errorStyle}>
             {settings.saveError}
           </Text>
         ) : null}
       </SettingsSection>
-      <TopKeysSection settings={settings} save={save} />
+      <TopKeysSection
+        theme={theme}
+        settings={settings}
+        status={data}
+        selection={selection}
+        save={save}
+      />
+      <ActionKeysSection theme={theme} settings={settings} selection={selection} save={save} />
+      <SettingsSection title="Dial">
+        <Highlight theme={theme} card on={selection.kind === "dial"}>
+          <SettingsCard>
+            {DIAL_INPUTS.map(({ input, label }) => (
+              <BindingRows
+                key={input}
+                input={input}
+                label={label}
+                settings={settings}
+                save={save}
+              />
+            ))}
+          </SettingsCard>
+        </Highlight>
+      </SettingsSection>
+      <SettingsSection title="Joystick">
+        <Highlight theme={theme} card on={selection.kind === "joystick"}>
+          <JoystickEditor theme={theme} settings={settings} status={data} save={save} />
+        </Highlight>
+      </SettingsSection>
       <LightsSection settings={settings} save={save} />
       <AgentsSection settings={settings} save={save} />
       <DialAndVoiceSection settings={settings} save={save} />
       <AdvancedSection settings={settings} status={data} theme={theme} save={save} />
     </>
   );
-}
-
-/** The settings of the part chosen in the picture. */
-function SelectionEditor({
-  selection,
-  theme,
-  settings,
-  status,
-  save,
-}: {
-  selection: PictureSelection;
-  theme: PluginTheme;
-  settings: ReadySettings;
-  status: KeypadStatus | undefined;
-  save: Save;
-}) {
-  switch (selection.kind) {
-    case "input":
-      return (
-        <KeyEditor key={selection.input} input={selection.input} settings={settings} save={save} />
-      );
-    case "dial":
-      return <DialEditor settings={settings} save={save} />;
-    case "joystick":
-      return <JoystickEditor theme={theme} settings={settings} status={status} save={save} />;
-    case "workspaceKey":
-      return <TopKeyEditor slot={selection.key} status={status} settings={settings} save={save} />;
-  }
 }
 
 /**
@@ -373,50 +367,38 @@ function keyToTheRight(input: ActionKey): ActionKey | null {
   return nextInput && isActionKey(nextInput) ? nextInput : null;
 }
 
-/** An action key's action, and whether it shares a double-wide keycap with the key to its right. */
-function KeyEditor({
-  input,
-  settings,
-  save,
+/**
+ * Marks the settings of the part chosen in the picture, so that the rows below the picture
+ * show which one belongs to it: a row gets a tint and a bar in the accent color,
+ * and a whole card gets an outline in the accent color.
+ */
+function Highlight({
+  theme,
+  on,
+  card = false,
+  children,
 }: {
-  input: ActionKey;
-  settings: ReadySettings;
-  save: Save;
+  theme: PluginTheme;
+  on: boolean;
+  card?: boolean;
+  children: ReactNode;
 }) {
-  const values = settings.values;
-  const group = groupOf(values.keyGroups, input).filter(isActionKey);
-  const last = group.at(-1) ?? input;
-  const right = keyToTheRight(last);
-  const name = keyName(...group.map(actionKeyIndex));
-  return (
-    <SettingsCard>
-      <BindingRows input={input} label={name} settings={settings} save={save} />
-      {group.length > 1 ? (
-        <SettingsSwitch
-          label="Double-wide keycap"
-          hint={`${name} act as one key.`}
-          value={true}
-          disabled={settings.saving}
-          onValueChange={() =>
-            save({
-              ...values,
-              keyGroups: values.keyGroups.filter((keys) => !keys.includes(last)),
-            })
-          }
-        />
-      ) : right ? (
-        <SettingsSwitch
-          label="Double-wide keycap"
-          hint={`Turn on if one keycap covers this key and ${ACTION_INPUT_LABELS[right].toLowerCase()}.`}
-          value={false}
-          disabled={settings.saving}
-          onValueChange={() =>
-            save({ ...values, keyGroups: joinKeys(values.keyGroups, last, right) })
-          }
-        />
-      ) : null}
-    </SettingsCard>
-  );
+  const accent = theme.colors.accent;
+  const tint = /^#[0-9a-f]{6}$/i.test(accent) ? `${accent}1f` : "transparent";
+  const style = card
+    ? {
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: on ? accent : "transparent",
+        margin: -4,
+        padding: 2,
+      }
+    : {
+        borderLeftWidth: 3,
+        borderLeftColor: on ? accent : "transparent",
+        backgroundColor: on ? tint : "transparent",
+      };
+  return <View style={style}>{children}</View>;
 }
 
 const DIAL_INPUTS: readonly { input: ActionInput; label: string }[] = [
@@ -427,12 +409,76 @@ const DIAL_INPUTS: readonly { input: ActionInput; label: string }[] = [
   { input: "dialHeldClockwise", label: "Hold and turn right" },
 ];
 
-function DialEditor({ settings, save }: { settings: ReadySettings; save: Save }) {
+/** Keys 7 to 13, one row per keycap in key order, each with its action. */
+function ActionKeysSection({
+  theme,
+  settings,
+  selection,
+  save,
+}: {
+  theme: PluginTheme;
+  settings: ReadySettings;
+  selection: PictureSelection;
+  save: Save;
+}) {
+  const values = settings.values;
+  return (
+    <SettingsSection title="Keys 7 to 13">
+      <SettingsCard>
+        {actionKeycaps(values).map((cap) => {
+          const leader = groupLeader(values.keyGroups, cap[0] ?? "ACT06");
+          const chosen = selection.kind === "input" && cap.some((key) => key === selection.input);
+          return (
+            <Highlight key={leader} theme={theme} on={chosen}>
+              <BindingRows
+                input={leader}
+                label={`${cap.length > 1 ? "Keys" : "Key"} ${keycapNumber(cap)}`}
+                settings={settings}
+                save={save}
+              />
+            </Highlight>
+          );
+        })}
+      </SettingsCard>
+    </SettingsSection>
+  );
+}
+
+/** Switches for the pairs of neighboring keys that one double-wide keycap can cover. */
+function KeycapsCard({ settings, save }: { settings: ReadySettings; save: Save }) {
+  const values = settings.values;
+  const pairs: [ActionKey, ActionKey][] = [];
+  for (const key of ACTION_KEYS) {
+    const right = keyToTheRight(key);
+    if (right) pairs.push([key, right]);
+  }
   return (
     <SettingsCard>
-      {DIAL_INPUTS.map(({ input, label }) => (
-        <BindingRows key={input} input={input} label={label} settings={settings} save={save} />
-      ))}
+      <SettingsRow
+        label="Double-wide keycaps"
+        hint="Turn on a pair that one keycap covers, so that a press of either key acts once."
+      />
+      {pairs.map(([left, right]) => {
+        const joined = groupOf(values.keyGroups, left).includes(right);
+        return (
+          <SettingsSwitch
+            key={left}
+            label={`Keys ${keycapNumber([left])} and ${keycapNumber([right])}`}
+            value={joined}
+            disabled={settings.saving}
+            onValueChange={(on) =>
+              save({
+                ...values,
+                keyGroups: on
+                  ? joinKeys(values.keyGroups, left, right)
+                  : values.keyGroups.filter(
+                      (keys) => !(keys.includes(left) && keys.includes(right)),
+                    ),
+              })
+            }
+          />
+        );
+      })}
     </SettingsCard>
   );
 }
@@ -484,43 +530,6 @@ export function RadialMenuSwitch({ settings, save }: { settings: ReadySettings; 
   );
 }
 
-/** What a top key shows now, and its pin. */
-function TopKeyEditor({
-  slot,
-  status,
-  settings,
-  save,
-}: {
-  slot: number;
-  status: KeypadStatus | undefined;
-  settings: ReadySettings;
-  save: Save;
-}) {
-  const { mode, openOnSingleTap } = settings.values.topKeys;
-  const info = status?.keys[slot];
-  const pinned = settings.values.pins[slot] ?? null;
-  return (
-    <SettingsCard>
-      <SettingsRow
-        label={`${keyName(slot)}: ${topKeyLabel(mode, slot, info)}`}
-        hint={topKeyHint(mode, slot, info, openOnSingleTap)}
-      />
-      {pinned && (mode === "workspaces" || mode === "pinned") ? (
-        <SettingsAction
-          label={
-            info?.workspaceId === pinned
-              ? "Pinned to this key"
-              : "The pinned workspace isn't available"
-          }
-          actionLabel="Unpin"
-          disabled={settings.saving}
-          onPress={() => save({ ...settings.values, pins: unpinKey(settings.values.pins, slot) })}
-        />
-      ) : null}
-    </SettingsCard>
-  );
-}
-
 /** The hint for a top key in the picture, by the top keys' mode. */
 function topKeyHint(
   mode: TopKeyMode,
@@ -558,20 +567,34 @@ function describeKey(
   return `${KEY_STATE_LABELS[info.state]} (${project}${agents}).`;
 }
 
-function TopKeysSection({ settings, save }: { settings: ReadySettings; save: Save }) {
+/** The top keys' mode, and keys 1 to 6 in order with what each shows now and its pin. */
+function TopKeysSection({
+  theme,
+  settings,
+  status,
+  selection,
+  save,
+}: {
+  theme: PluginTheme;
+  settings: ReadySettings;
+  status: KeypadStatus | undefined;
+  selection: PictureSelection;
+  save: Save;
+}) {
   const values = settings.values;
   const topKeys = values.topKeys;
+  const mode = status?.topKeyMode ?? topKeys.mode;
   return (
-    <SettingsSection title="Top keys">
+    <SettingsSection title="Keys 1 to 6">
       <SettingsCard>
         <SettingsSelect
-          label="Keys 1 to 6"
+          label="Top keys"
           hint={TOP_KEY_MODE_HINTS[topKeys.mode]}
           value={topKeys.mode}
           options={TOP_KEY_MODE_OPTIONS}
           disabled={settings.saving}
-          onValueChange={(mode) =>
-            save({ ...values, topKeys: { ...topKeys, mode: mode as TopKeyMode } })
+          onValueChange={(next) =>
+            save({ ...values, topKeys: { ...topKeys, mode: next as TopKeyMode } })
           }
         />
         {topKeys.mode === "recentAgents" ? (
@@ -585,6 +608,32 @@ function TopKeysSection({ settings, save }: { settings: ReadySettings; save: Sav
             }
           />
         ) : null}
+        {Array.from({ length: WORKSPACE_KEY_COUNT }, (_, slot) => {
+          const info = status?.keys[slot];
+          const pinned = values.pins[slot] ?? null;
+          const chosen = selection.kind === "workspaceKey" && selection.key === slot;
+          const label = `${keyName(slot)}: ${topKeyLabel(mode, slot, info)}`;
+          const hint = chosen ? topKeyHint(mode, slot, info, topKeys.openOnSingleTap) : undefined;
+          return (
+            <Highlight key={slot} theme={theme} on={chosen}>
+              {pinned && (mode === "workspaces" || mode === "pinned") ? (
+                <SettingsAction
+                  label={
+                    info?.workspaceId === pinned
+                      ? `${label}, pinned`
+                      : `${keyName(slot)}: pinned workspace not available`
+                  }
+                  hint={hint}
+                  actionLabel="Unpin"
+                  disabled={settings.saving}
+                  onPress={() => save({ ...values, pins: unpinKey(values.pins, slot) })}
+                />
+              ) : (
+                <SettingsRow label={label} hint={hint} />
+              )}
+            </Highlight>
+          );
+        })}
       </SettingsCard>
     </SettingsSection>
   );
@@ -818,6 +867,7 @@ function AdvancedSection({
     >
       {open ? (
         <>
+          <KeycapsCard settings={settings} save={save} />
           <KeyLightsCard settings={settings} save={save} />
           <SettingsCard>
             <SettingsSelect
