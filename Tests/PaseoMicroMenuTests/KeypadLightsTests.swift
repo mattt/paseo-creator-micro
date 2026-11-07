@@ -200,7 +200,7 @@ struct KeypadLightsTests {
         )
         #expect(
             KeyDescription.summary(lights: desired, lightableKeys: nil, connected: true)
-                == "Keypad lights: ring teal; keys 0 to 5 white; key 6 yellow, breathing; other keys faint white"
+                == "Keypad lights: ring teal; keys 1 to 6 white; key 7 yellow, breathing; other keys faint white"
         )
         #expect(KeyDescription.summary(lights: desired, lightableKeys: nil, connected: false) == "Keypad not connected")
         #expect(

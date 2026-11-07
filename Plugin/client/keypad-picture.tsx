@@ -1,292 +1,480 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useMemo } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, type ViewStyle } from "react-native";
 import { ACTIONS } from "../shared/actions";
 import { groupLeader, groupOf } from "../shared/key-groups";
-import {
-  ACTION_INPUT_LABELS,
-  WORKSPACE_KEY_COUNT,
-  KEY_ROWS,
-  keyActionInput,
-  keyName,
-  type ActionInput,
-  type JoystickDirection,
-} from "../shared/keypad";
-import type { KeypadStatus } from "../shared/rpc";
+import { keyActionInput, keyName, type ActionKey } from "../shared/keypad";
+import type { KeyLight, KeypadStatus } from "../shared/rpc";
 import type { KeypadSettings } from "../shared/settings";
-import { joystickDetail, lightSwatch, topKeyLabel } from "./summary";
+import { topKeyLabel } from "./summary";
 
-/** An input chosen in the picture: a top key (`workspaceKey`, keys 0–5) or an action input. */
+/** An input chosen in the picture: a top key (keys 0–5), an action key, the dial, or the joystick. */
 export type PictureSelection =
   | { kind: "workspaceKey"; key: number }
-  | { kind: "input"; input: ActionInput }
-  | { kind: "radialMenu" };
+  | { kind: "input"; input: ActionKey }
+  | { kind: "dial" }
+  | { kind: "joystick" };
 
 interface KeypadPictureProps {
   theme: PluginTheme;
   settings: KeypadSettings;
   status: KeypadStatus | undefined;
+  /** The chosen part, or null for none. */
   selection: PictureSelection | null;
-  onSelect: (selection: PictureSelection) => void;
+  /** Called when a part is chosen; without it, the picture only shows the keypad. */
+  onSelect?: (selection: PictureSelection) => void;
 }
 
-const KEY_SIZE = 64;
+// The keypad's measurements, in points, in the proportions of the menu bar app's drawing.
+const KEY = 72;
 const GAP = 8;
+const PLATE_PADDING = 18;
+const BEZEL = 14;
+const GRID = KEY * 4 + GAP * 3;
+const PLATE = GRID + PLATE_PADDING * 2;
+const BODY = PLATE + BEZEL * 2;
+const BODY_CORNER = 40;
+const PLATE_CORNER = BODY_CORNER - BEZEL;
+const CAP_CORNER = 11;
 
-/** Splits a row into runs of keys under one keycap; other keys stand alone. */
-function keycaps(row: readonly number[], settings: KeypadSettings): number[][] {
-  const runs: number[][] = [];
-  for (const key of row) {
-    const run = runs.at(-1);
-    const previous = run?.at(-1);
-    const input = keyActionInput(key);
+/** The key with a frosted, translucent keycap, which shows its light through the whole cap. */
+const FROSTED_KEY = 6;
+
+/** The keypad's cells, by row: the knob and joystick share the top row with keys 0 and 1. */
+type Cell =
+  | { kind: "knob" }
+  | { kind: "joystick" }
+  | { kind: "badge" }
+  | { kind: "keys"; keys: number[] };
+
+const ROWS: readonly (readonly (Cell | number)[])[] = [
+  [{ kind: "knob" }, 0, 1, { kind: "joystick" }],
+  [2, 3, 4, 5],
+  [6, 7, 8, 9],
+  [{ kind: "badge" }, 10, 11, 12],
+];
+
+/** Splits a row into cells, with the keys under one keycap in one cell. */
+function cells(row: readonly (Cell | number)[], settings: KeypadSettings): Cell[] {
+  const result: Cell[] = [];
+  for (const item of row) {
+    if (typeof item !== "number") {
+      result.push(item);
+      continue;
+    }
+    const last = result.at(-1);
+    const previous = last?.kind === "keys" ? last.keys.at(-1) : undefined;
+    const input = keyActionInput(item);
     const before = previous === undefined ? null : keyActionInput(previous);
-    if (run && input && before && groupOf(settings.keyGroups, before).includes(input)) {
-      run.push(key);
+    if (
+      last?.kind === "keys" &&
+      input &&
+      before &&
+      groupOf(settings.keyGroups, before).includes(input)
+    ) {
+      last.keys.push(item);
     } else {
-      runs.push([key]);
+      result.push({ kind: "keys", keys: [item] });
     }
   }
-  return runs;
+  return result;
 }
 
-const ARROWS: Readonly<Record<JoystickDirection, string>> = {
-  joystickUp: "▲ Up",
-  joystickDown: "▼ Down",
-  joystickLeft: "◀ Left",
-  joystickRight: "▶ Right",
-};
-
-function shortLabel(text: string, length = 14): string {
-  return text.length > length ? `${text.slice(0, length - 1)}…` : text;
+/** A light as it looks: its color and how strongly it shows, or null when it is dark. */
+function appearance(
+  light: KeyLight | null | undefined,
+): { color: string; strength: number } | null {
+  if (!light || light.effect === "off" || light.brightness <= 0) return null;
+  if (/^#0{6}$/.test(light.color)) return null;
+  return { color: light.color, strength: 0.45 + 0.55 * Math.min(1, light.brightness * 2) };
 }
+
+/** A hex color with an opacity from 0 to 1. */
+function alpha(color: string, opacity: number): string {
+  const value = Math.round(Math.max(0, Math.min(1, opacity)) * 255);
+  return `${color.slice(0, 7)}${value.toString(16).padStart(2, "0")}`;
+}
+
+const GRAY = {
+  body: "#1c1c1f",
+  plate: "#0d0d0f",
+  cap: "#2f2f33",
+  dish: "#27272b",
+  knob: "#1a1a1d",
+  metal: "#8b8b92",
+  ring: "#3a3a40",
+} as const;
 
 /**
- * A schematic of the Creator Micro 2: the dial's turns, click, and held turns,
- * the joystick's four directions with their prompts, then the keys in rows of 2, 4, 4, and 3.
- * The top keys show what their mode puts on them, such as a workspace or a navigation action,
- * with their current light; the other inputs show their action.
- * Keys under one keycap show as one wide key.
+ * A drawing of the Creator Micro 2 from above, after the menu bar app's drawing:
+ * the knob and the joystick beside keys 1 and 2, the keys in rows below them,
+ * keys under one keycap as one wide key, and the light ring around the plate.
+ * Each key shows what it does and its current light; the light ring shows the underglow.
+ * The knob and the joystick select the dial's and the joystick's settings.
  */
 export function KeypadPicture({
   theme,
   settings,
   status,
   selection,
-  onSelect,
+  onSelect: select,
 }: KeypadPictureProps) {
-  const styles = useMemo(
-    () => ({
-      frame: {
-        gap: 8,
-        padding: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        backgroundColor: theme.colors.surface1,
-        alignSelf: "flex-start" as const,
-      },
-      row: { flexDirection: "row" as const, gap: GAP },
-      key: {
-        width: KEY_SIZE,
-        height: KEY_SIZE,
-        borderRadius: 8,
-        borderWidth: 2,
-        padding: 4,
-        justifyContent: "space-between" as const,
-      },
-      code: { fontSize: 9, color: theme.colors.foregroundMuted },
-      label: { fontSize: 10, color: theme.colors.foreground },
-      joystick: { gap: 4, alignItems: "center" as const, alignSelf: "flex-start" as const },
-      direction: {
-        width: KEY_SIZE * 2,
-        minHeight: 40,
-        borderRadius: 8,
-        borderWidth: 2,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        justifyContent: "center" as const,
-      },
-      control: {
-        minWidth: KEY_SIZE,
-        height: 32,
-        borderRadius: 16,
-        borderWidth: 2,
-        paddingHorizontal: 8,
-        alignItems: "center" as const,
-        justifyContent: "center" as const,
-      },
-    }),
-    [theme],
-  );
+  const onSelect = (next: PictureSelection) => select?.(next);
+  const role = select ? ("button" as const) : undefined;
+  const ring = appearance(status?.ambient);
+  const connected = status?.bridge.state === "connected" && status.keypad?.connected === true;
+  const styles = useMemo(() => pictureStyles(), []);
 
-  const border = (selected: boolean) => (selected ? theme.colors.accent : theme.colors.border);
-  const isInput = (input: ActionInput) => selection?.kind === "input" && selection.input === input;
+  const isSelected = (cell: Cell): boolean => {
+    switch (cell.kind) {
+      case "knob":
+        return selection?.kind === "dial";
+      case "joystick":
+        return selection?.kind === "joystick";
+      case "badge":
+        return false;
+      case "keys": {
+        const first = cell.keys[0] ?? -1;
+        if (selection?.kind === "workspaceKey") return selection.key === first;
+        if (selection?.kind !== "input") return false;
+        return cell.keys.some((key) => keyActionInput(key) === selection.input);
+      }
+    }
+  };
 
-  /** One keycap over one or more action keys; a shared keycap runs its first key's binding. */
-  function actionKey(keys: readonly number[]) {
-    const first = keys[0];
-    const input = first === undefined ? null : keyActionInput(first);
-    if (first === undefined || !input) return null;
-    const leader = groupLeader(settings.keyGroups, input);
-    const action = settings.bindings[leader].action;
-    const name = keyName(...keys);
-    // A key with a light source shows the light that the plugin sends it;
-    // the keypad shows it only on a layer that binds the key to an AG code.
-    const own = status?.actionKeys.find((entry) => entry.key === first)?.light;
+  /** A ring in the accent color around the chosen part. */
+  const outline = (selected: boolean, radius: number) =>
+    selected ? (
+      <View
+        pointerEvents="none"
+        style={[styles.outline, { borderRadius: radius + 4, borderColor: theme.colors.accent }]}
+      />
+    ) : null;
+
+  function keycap(keys: number[], selected: boolean) {
+    const first = keys[0] ?? 0;
+    const width = KEY * keys.length + GAP * (keys.length - 1);
+    const input = keyActionInput(first);
+    let description: string;
+    let light: KeyLight | null | undefined;
+    let onPress: () => void;
+    if (input === null) {
+      const info = status?.keys[first];
+      const mode = status?.topKeyMode ?? settings.topKeys.mode;
+      description = `${keyName(first)}: ${topKeyLabel(mode, first, info)}${info?.pinned ? ", pinned" : ""}`;
+      light = info?.light;
+      onPress = () => onSelect({ kind: "workspaceKey", key: first });
+    } else {
+      const leader = groupLeader(settings.keyGroups, input) as ActionKey;
+      description = `${keyName(...keys)}: ${ACTIONS[settings.bindings[leader].action].label}`;
+      light =
+        status?.actionKeys.find((entry) => keys.includes(entry.key))?.light ??
+        (status ? settings.lights.keysZone : null);
+      onPress = () => onSelect({ kind: "input", input: leader });
+    }
+    const lit = connected ? appearance(light) : null;
+    const frosted = first === FROSTED_KEY;
+    const face: ViewStyle = frosted
+      ? {
+          backgroundColor: lit ? alpha(lit.color, 0.35 + 0.4 * lit.strength) : "#77777d",
+          borderColor: "rgba(255,255,255,0.55)",
+        }
+      : {
+          backgroundColor: GRAY.cap,
+          borderColor: lit ? alpha(lit.color, 0.75 * lit.strength) : "rgba(255,255,255,0.08)",
+        };
+    const glow: ViewStyle = lit
+      ? {
+          shadowColor: lit.color,
+          shadowOpacity: 0.9 * lit.strength,
+          shadowRadius: frosted ? 10 : 6,
+          shadowOffset: { width: 0, height: 0 },
+        }
+      : {};
     return (
       <Pressable
         key={first}
-        accessibilityRole="button"
-        accessibilityLabel={`${name}: ${ACTIONS[action].label}`}
-        onPress={() => onSelect({ kind: "input", input: leader })}
-        style={[
-          styles.key,
-          {
-            width: KEY_SIZE * keys.length + GAP * (keys.length - 1),
-            borderColor: border(isInput(leader)),
-            backgroundColor: lightSwatch(own ?? settings.lights.keysZone, theme.colors.surface2),
-          },
-        ]}
+        accessibilityRole={role}
+        disabled={!select}
+        accessibilityLabel={description}
+        accessibilityState={{ selected }}
+        onPress={onPress}
+        style={[styles.cap, { width }, face, glow]}
       >
-        <Text style={styles.code}>{name}</Text>
-        <Text style={styles.label} numberOfLines={2}>
-          {action === "none" ? "—" : shortLabel(ACTIONS[action].label, 22)}
+        <View
+          pointerEvents="none"
+          style={[
+            styles.dish,
+            frosted
+              ? { backgroundColor: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.3)" }
+              : null,
+          ]}
+        />
+        <Text style={[styles.capNumber, frosted ? styles.frostedNumber : null]}>
+          {keys.map((key) => key + 1).join("–")}
         </Text>
+        {outline(selected, CAP_CORNER)}
       </Pressable>
     );
   }
 
-  function workspaceKey(key: number) {
-    const info = status?.keys[key];
-    const selected = selection?.kind === "workspaceKey" && selection.key === key;
-    const title = topKeyLabel(status?.topKeyMode ?? settings.topKeys.mode, key, info);
+  function knob(selected: boolean) {
+    const dial = settings.bindings;
     return (
       <Pressable
-        key={key}
-        accessibilityRole="button"
-        accessibilityLabel={`${keyName(key)}: ${title}${info?.pinned ? ", pinned" : ""}`}
-        onPress={() => onSelect({ kind: "workspaceKey", key })}
-        style={[
-          styles.key,
-          {
-            borderColor: border(selected),
-            backgroundColor: lightSwatch(info?.light, theme.colors.surface2),
-          },
-        ]}
+        key="knob"
+        accessibilityRole={role}
+        disabled={!select}
+        accessibilityLabel={`Dial: turn left to ${ACTIONS[dial.dialCounterclockwise.action].label}, turn right to ${ACTIONS[dial.dialClockwise.action].label}, click to ${ACTIONS[dial.dialPress.action].label}`}
+        accessibilityState={{ selected }}
+        onPress={() => onSelect({ kind: "dial" })}
+        style={styles.part}
       >
-        <Text style={styles.code}>
-          {keyName(key)}
-          {info?.pinned ? " · pinned" : ""}
-        </Text>
-        <Text style={styles.label} numberOfLines={2}>
-          {shortLabel(title, 22)}
-        </Text>
+        <View style={styles.knob}>
+          <View style={styles.knobInner} />
+          <View style={styles.knobBar} />
+        </View>
+        {outline(selected, KEY / 2)}
       </Pressable>
     );
   }
 
-  function control(input: ActionInput, label: string) {
-    const action = settings.bindings[input].action;
+  function joystick(selected: boolean) {
+    const radial = settings.radialMenu.enabled;
     return (
       <Pressable
-        key={input}
-        accessibilityRole="button"
-        accessibilityLabel={`${label}: ${ACTIONS[action].label}`}
-        onPress={() => onSelect({ kind: "input", input })}
-        style={[
-          styles.control,
-          { borderColor: border(isInput(input)), backgroundColor: theme.colors.surface2 },
-        ]}
+        key="joystick"
+        accessibilityRole={role}
+        disabled={!select}
+        accessibilityLabel={
+          radial ? "Joystick: radial menu" : "Joystick: a prompt for each direction"
+        }
+        accessibilityState={{ selected }}
+        onPress={() => onSelect({ kind: "joystick" })}
+        style={styles.part}
       >
-        <Text style={styles.label}>{label}</Text>
+        <View style={styles.stickBase}>
+          <View style={styles.stickCap} />
+        </View>
+        {outline(selected, 12)}
       </Pressable>
     );
   }
 
-  /** The joystick's radial menu, which replaces the four directions while it is on. */
-  function radialMenu() {
-    const selected = selection?.kind === "radialMenu";
-    const { enabled, slots } = settings.radialMenu;
-    const labels = slots.map((slot) => slot.label).join(" · ");
+  function badge() {
+    const leds = ["#FFE06B", "#C7E6FF", "#FFE06B"];
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Joystick radial menu: ${enabled ? labels : "off"}`}
-        onPress={() => onSelect({ kind: "radialMenu" })}
-        style={[
-          styles.direction,
-          {
-            width: KEY_SIZE * 4 + GAP * 3,
-            borderColor: border(selected),
-            backgroundColor: theme.colors.surface2,
-          },
-        ]}
-      >
-        <Text style={styles.code}>{enabled ? "◎ Radial menu" : "◎ Radial menu: off"}</Text>
-        <Text style={styles.label} numberOfLines={2}>
-          {enabled ? labels : "The joystick's directions run their own actions."}
-        </Text>
-      </Pressable>
+      <View key="badge" style={[styles.part, styles.badge]} accessibilityElementsHidden>
+        <View style={styles.leds}>
+          {leds.map((color, index) => (
+            <View
+              key={index}
+              style={[styles.led, { backgroundColor: connected ? color : "#3a3a3e" }]}
+            />
+          ))}
+        </View>
+        <View style={styles.badgeCircle} />
+      </View>
     );
   }
 
-  /** A joystick direction with its prompt, or its action when it does not send a prompt. */
-  function direction(input: JoystickDirection) {
-    const binding = settings.bindings[input];
-    const detail = joystickDetail(binding.action, binding.text);
-    return (
-      <Pressable
-        key={input}
-        accessibilityRole="button"
-        accessibilityLabel={`${ACTION_INPUT_LABELS[input]}: ${detail}`}
-        onPress={() => onSelect({ kind: "input", input })}
-        style={[
-          styles.direction,
-          { borderColor: border(isInput(input)), backgroundColor: theme.colors.surface2 },
-        ]}
-      >
-        <Text style={styles.code}>{ARROWS[input]}</Text>
-        <Text style={styles.label} numberOfLines={2}>
-          {shortLabel(detail, 30)}
-        </Text>
-      </Pressable>
-    );
-  }
+  const ringStyle: ViewStyle = ring
+    ? {
+        borderColor: alpha(ring.color, 0.5 + 0.5 * ring.strength),
+        shadowColor: ring.color,
+        shadowOpacity: 0.8 * ring.strength,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 0 },
+      }
+    : { borderColor: GRAY.ring };
+  const bodyGlow: ViewStyle =
+    ring && connected
+      ? {
+          shadowColor: ring.color,
+          shadowOpacity: 0.55 * ring.strength,
+          shadowRadius: 22,
+          shadowOffset: { width: 0, height: 0 },
+        }
+      : {
+          shadowColor: "#000000",
+          shadowOpacity: 0.35,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+        };
 
   return (
-    <View style={styles.frame} accessibilityLabel="Creator Micro 2 keypad">
-      <View style={styles.row}>
-        {control("dialCounterclockwise", "Dial ↺")}
-        {control("dialPress", "Click")}
-        {control("dialClockwise", "Dial ↻")}
-      </View>
-      <View style={styles.row}>
-        {control("dialHeldCounterclockwise", "Held ↺")}
-        {control("dialHeldClockwise", "Held ↻")}
-      </View>
-      <View style={styles.joystick} accessibilityLabel="Joystick">
-        {radialMenu()}
-        {settings.radialMenu.enabled ? null : (
-          <>
-            {direction("joystickUp")}
-            <View style={styles.row}>
-              {direction("joystickLeft")}
-              {direction("joystickRight")}
+    <View style={styles.wrap}>
+      <View
+        accessibilityLabel={connected ? "Creator Micro 2" : "Creator Micro 2, not connected"}
+        style={[styles.body, bodyGlow, connected ? null : styles.dimmed]}
+      >
+        <View style={[styles.plate, connected ? ringStyle : { borderColor: GRAY.ring }]}>
+          {[
+            { top: 7, left: 7 },
+            { top: 7, right: 7 },
+            { bottom: 7, left: 7 },
+            { bottom: 7, right: 7 },
+          ].map((corner, index) => (
+            <View key={index} style={[styles.screw, corner]} />
+          ))}
+          {ROWS.map((row, index) => (
+            <View key={index} style={styles.row}>
+              {cells(row, settings).map((cell) => {
+                const selected = isSelected(cell);
+                switch (cell.kind) {
+                  case "knob":
+                    return knob(selected);
+                  case "joystick":
+                    return joystick(selected);
+                  case "badge":
+                    return badge();
+                  case "keys":
+                    return keycap(cell.keys, selected);
+                }
+              })}
             </View>
-            {direction("joystickDown")}
-          </>
-        )}
-      </View>
-      {KEY_ROWS.map((row, index) => (
-        <View key={index} style={styles.row}>
-          {keycaps(row, settings).map((keys) =>
-            keys.length === 1 && (keys[0] ?? 0) < WORKSPACE_KEY_COUNT
-              ? workspaceKey(keys[0] ?? 0)
-              : actionKey(keys),
-          )}
+          ))}
         </View>
-      ))}
+      </View>
     </View>
   );
+}
+
+function pictureStyles() {
+  return {
+    wrap: {
+      flexDirection: "row" as const,
+      flexWrap: "wrap" as const,
+      justifyContent: "center" as const,
+      alignItems: "flex-start" as const,
+      gap: 16,
+      paddingVertical: 8,
+    },
+    body: {
+      width: BODY,
+      height: BODY,
+      padding: BEZEL - 2,
+      borderRadius: BODY_CORNER,
+      backgroundColor: GRAY.body,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.16)",
+      margin: 8,
+    },
+    dimmed: { opacity: 0.65 },
+    plate: {
+      flex: 1,
+      borderRadius: PLATE_CORNER,
+      borderWidth: 2,
+      backgroundColor: GRAY.plate,
+      padding: PLATE_PADDING - 2,
+      gap: GAP,
+    },
+    screw: {
+      position: "absolute" as const,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: "#2a2a2e",
+      borderWidth: 1,
+      borderColor: "#050506",
+    },
+    row: { flexDirection: "row" as const, gap: GAP },
+    part: {
+      width: KEY,
+      height: KEY,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    outline: {
+      position: "absolute" as const,
+      top: -4,
+      left: -4,
+      right: -4,
+      bottom: -4,
+      borderWidth: 2,
+    },
+    cap: {
+      height: KEY,
+      borderRadius: CAP_CORNER,
+      borderWidth: 1,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    dish: {
+      position: "absolute" as const,
+      top: 5,
+      left: 5,
+      right: 5,
+      bottom: 5,
+      borderRadius: KEY * 0.3,
+      backgroundColor: GRAY.dish,
+      borderWidth: 1,
+      borderColor: "rgba(0,0,0,0.35)",
+    },
+    capNumber: {
+      color: "rgba(255,255,255,0.92)",
+      fontSize: 15,
+      fontWeight: "600" as const,
+      fontVariant: ["tabular-nums" as const],
+      textShadowColor: "rgba(0,0,0,0.6)",
+      textShadowRadius: 2,
+      textShadowOffset: { width: 0, height: 1 },
+    },
+    frostedNumber: { color: "rgba(0,0,0,0.85)", textShadowColor: "rgba(255,255,255,0.4)" },
+    knob: {
+      width: KEY - 6,
+      height: KEY - 6,
+      borderRadius: (KEY - 6) / 2,
+      backgroundColor: GRAY.knob,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.14)",
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    knobInner: {
+      position: "absolute" as const,
+      top: 4,
+      left: 4,
+      right: 4,
+      bottom: 4,
+      borderRadius: KEY,
+      backgroundColor: "#141416",
+    },
+    knobBar: {
+      width: 14,
+      height: KEY - 14,
+      borderRadius: 6,
+      backgroundColor: "#3a3a3f",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.14)",
+      transform: [{ rotate: "40deg" }],
+    },
+    stickBase: {
+      width: 42,
+      height: 42,
+      borderRadius: 4,
+      backgroundColor: GRAY.metal,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    stickCap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: "#18181b",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.14)",
+    },
+    badge: { flexDirection: "row" as const, gap: 5 },
+    leds: { gap: 5 },
+    led: { width: 6, height: 3, borderRadius: 2 },
+    badgeCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#18181b",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.14)",
+    },
+  };
 }

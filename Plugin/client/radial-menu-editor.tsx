@@ -73,22 +73,22 @@ const PREVIEW_ICONS: Readonly<Record<RadialMenuIcon, string>> = {
 
 const ICON_OPTIONS = RADIAL_MENU_ICONS.map((icon) => ({
   value: icon,
-  label: `${RADIAL_MENU_ICON_LABELS[icon]} (${icon})`,
+  label: RADIAL_MENU_ICON_LABELS[icon],
 }));
 
 const ACTION_OPTIONS = ACTION_IDS.map((id) => ({
   value: id,
-  label: id === "none" ? "Nothing (empty slot)" : ACTIONS[id].label,
+  label: id === "none" ? "Nothing (leave empty)" : ACTIONS[id].label,
 }));
 
 const DEFAULT_COLOR = "default";
 
 function colorOptions(current: string | null) {
   const options = [
-    { value: DEFAULT_COLOR, label: "Default (white)" },
+    { value: DEFAULT_COLOR, label: "White" },
     ...RADIAL_COLOR_PRESETS.map((preset) => ({
       value: preset.color,
-      label: `${preset.label} (${preset.color})`,
+      label: preset.label,
     })),
   ];
   if (current !== null && !options.some((option) => option.value === current)) {
@@ -226,14 +226,14 @@ export function RadialMenuEditor({
       <SettingsCard>
         <SettingsSwitch
           label="Radial menu"
-          hint="Push the joystick to show eight choices, then let go on one to run it."
+          hint="Push the joystick to show eight choices, then let go on one. The joystick works only on a keypad layer that sends its directions."
           value={menu.enabled}
           disabled={settings.saving}
           onValueChange={(enabled) => setMenu({ enabled })}
         />
         <SettingsRow
-          label="Slots"
-          hint="Choose a slot to change it. Slots that can't act now are dimmed."
+          label="Choices"
+          hint="Choose one to change it. Choices that can't act now are dimmed."
         >
           <RadialMenuRing
             theme={theme}
@@ -284,11 +284,10 @@ function SlotEditor({
     <SettingsCard>
       <SettingsRow
         label={`${name}: ${slot.label}`}
-        hint={blocker ? `Dimmed: ${blocker}.` : undefined}
+        hint={blocker ? `Dimmed now: ${blocker}.` : undefined}
       />
       <SettingsSelect
         label="Icon"
-        hint="An SF Symbol name."
         value={slot.icon}
         options={ICON_OPTIONS}
         disabled={disabled}
@@ -313,7 +312,7 @@ function SlotEditor({
       />
       <SettingsInput
         label="Label"
-        hint="One or two words."
+        hint="One or two words, shown under the icon."
         initialValue={slot.label}
         error={labelError}
         disabled={disabled}
@@ -329,14 +328,19 @@ function SlotEditor({
           onChangeText={setText}
         />
       ) : null}
+      {changed ? (
+        <SettingsAction
+          label="Unsaved changes"
+          actionLabel="Save"
+          disabled={disabled || !parsedLabel.success}
+          onPress={() =>
+            parsedLabel.success && onChange({ ...slot, label: parsedLabel.data, text })
+          }
+        />
+      ) : null}
       <SettingsAction
-        label="Label and prompt changes"
-        actionLabel="Save"
-        disabled={disabled || !changed || !parsedLabel.success}
-        onPress={() => parsedLabel.success && onChange({ ...slot, label: parsedLabel.data, text })}
-      />
-      <SettingsAction
-        label="Default slots"
+        label="Restore the default choices"
+        hint="All eight choices go back to their first icons, labels, and actions."
         actionLabel="Restore"
         disabled={disabled}
         onPress={onRestore}

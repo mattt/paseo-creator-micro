@@ -76,7 +76,8 @@ and a drawing of the keypad whose lights follow the lights that the app keeps on
 The app does not read lights back from the keypad,
 and it shows the keypad's effects without matching their timing.
 The header always shows how the keypad is connected, over USB or Bluetooth, and its battery charge.
-Hold Option as it opens, or while it is open, to see each key's number,
+Hold Option as it opens, or while it is open, to see each key's number
+(1 to 13, as in the plugin's settings),
 the firmware, layer, lighting, last input, connected programs, and the MCP address.
 A dashed outline marks a key that has no light of its own on the current layer.
 
@@ -86,7 +87,7 @@ Switch to the stock "ChatGPT" layer (layer 4) for keys and dial.
 Paseo Micro finds input layers by reading `KV_OAI_` codes in `keymap.json`;
 other layers show a warning and cannot control Paseo.
 
-**The joystick radial menu and key 6's individual light need a custom keypad
+**The joystick radial menu and key 7's individual light need a custom keypad
 layer 2.**
 There is no supported setup tool yet.
 The stock layer 4 sends no joystick events on firmware 0.6.3.
@@ -94,34 +95,37 @@ The stock layer 4 sends no joystick events on firmware 0.6.3.
 Writing a keymap can leave the keypad needing a reflash.
 Work Louder's Input app may rewrite a custom layer.
 Paseo Micro itself never writes the keypad's files.
-With the stock layer, key 6 still opens the next agent and the underglow shows its state.
+With the stock layer, key 7 still opens the next agent and the underglow shows its state.
 
 ## Keys and default bindings
 
-Key indices are zero-based; some plugin settings label them 1-13.
-The rows contain 2, 4, 4, and 3 switches:
+Keys are numbered 1 to 13, as in the menu and the plugin's settings.
+Firmware codes such as `ACT06` count from 0, so key 7 is `ACT06`;
+the bridge, MCP, and logs also use 0-based indexes.
+The rows contain 2, 4, 4, and 3 switches,
+and keys 11 and 12 share one double-wide keycap:
 
 ```text
-       [0] [1]
-   [2] [3] [4] [5]
-   [6] [7] [8] [9]
-     [10] [11] [12]
+       [1] [2]
+   [3] [4] [5] [6]
+   [7] [8] [9] [10]
+     [ 11–12 ] [13]
 ```
 
 | Input | Default action |
 | --- | --- |
-| Key 0, `AG00` | Back through agents opened with the keypad |
-| Key 1, `AG01` | Forward through that history |
-| Key 2, `AG02` | Previous project |
-| Key 3, `AG03` | Previous workspace (`Cmd+[`) |
-| Key 4, `AG04` | Next workspace (`Cmd+]`) |
-| Key 5, `AG05` | Next project |
-| Key 6, `ACT06` or `AG06` | Open the next agent that needs action |
-| Key 7, `ACT07` | Approve a permission request |
-| Key 8, `ACT08` | Deny a permission request |
-| Key 9, `ACT09` | Start a new agent (`Cmd+O`) |
-| Keys 10 and 11, `ACT10` and `ACT11` | Push to talk, as one double-wide keycap |
-| Key 12, `ACT12` | Submit |
+| Key 1, `AG00` | Back through agents opened with the keypad |
+| Key 2, `AG01` | Forward through that history |
+| Key 3, `AG02` | Previous project |
+| Key 4, `AG03` | Previous workspace (`Cmd+[`) |
+| Key 5, `AG04` | Next workspace (`Cmd+]`) |
+| Key 6, `AG05` | Next project |
+| Key 7, `ACT06` or `AG06` | Open the next agent that needs action |
+| Key 8, `ACT07` | Approve a permission request |
+| Key 9, `ACT08` | Deny a permission request |
+| Key 10, `ACT09` | Start a new agent (`Cmd+O`) |
+| Keys 11–12, `ACT10` and `ACT11` | Push to talk, as one double-wide keycap |
+| Key 13, `ACT12` | Submit |
 | Dial clockwise / counterclockwise | Scroll down / up, 3 lines per step |
 | Held dial clockwise / counterclockwise | Scroll down / up, 15 lines per step |
 | Dial click | Jump to the bottom of the conversation |
@@ -142,17 +146,20 @@ Return slowly to the center to cancel.
 Escape, a keypad key, or a dial press also cancels without running another action.
 With the radial menu off, the four directions send separate prompts, initially empty.
 
-Key 6 cycles through agents that need action, longest waiting first,
+Key 7 cycles through agents that need action, longest waiting first,
 without repeating an agent until the round ends.
-The underglow and, on the custom layer, key 6 show the next agent's state:
+The underglow and, on the custom layer, key 7 show the next agent's state:
 red for failure, breathing yellow for input, green for an unread result, and off for none.
 Subagents are excluded unless **Include subagents** is enabled.
 
 ## Configuration
 
 Open **Settings > Plugins > Creator Micro** or
-**Creator Micro: keypad settings** in Command Center.
-Assign keys, key groups, dial gestures, and radial choices in the keypad picture.
+**Creator Micro: open keypad settings** in Command Center.
+The settings show a picture of the keypad, numbered 1 to 13, whose lights follow the real unit.
+Below it, rows in key order assign each key's action, the dial's gestures, and radial choices;
+choosing a part in the picture highlights its row.
+Double-wide keycaps are under Advanced.
 Settings control lighting, scrolling, push-to-talk submission, and subagent inclusion.
 Without a selected workspace, actions target the next agent that needs action,
 else the most recently active agent; this is configurable.
@@ -168,8 +175,11 @@ state colors, and all actions and settings.
 Command Center commands pin or unpin workspaces on keys 1-6 and reconnect to the app.
 The composer commands `/keypad-pin-workspace <1-6>` and `/keypad-unpin-workspace`
 also manage pins.
-The sidebar footer shows whether the keypad works;
-click it to see the top keys and the last action.
+The sidebar footer shows, in Paseo's words, the state of the agent that key 7 opens next,
+such as "Needs input", with a dot in that state's light color;
+it says "Keypad ready" when nothing needs action, and dims when the keypad does not work.
+Click it for the agent's name, a live picture of the keypad with a numbered list of what each key does,
+the top-key mode, the underglow, and the full settings.
 
 `mise run run:app` passes these environment variables to the app:
 
@@ -239,7 +249,7 @@ build/PaseoMicro.app/Contents/MacOS/micro clear
   While ChatGPT runs, Paseo Micro pauses writes on the layer named "ChatGPT"
   (layer 4 if no name is found).
   On other input layers it repaints every 30 seconds because ChatGPT resets lights.
-- If key 6 has no individual light or the joystick does nothing, read
+- If key 7 has no individual light or the joystick does nothing, read
   [the custom layer limits](#keypad-layers-and-experimental-features).
 - If shortcuts or scrolling fail, check Accessibility permission.
   If permission is already enabled, turn it off and on again.

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  connectionDetail,
   inputLayerList,
   joystickDetail,
+  keypadWorks,
   offInputLayer,
   sidebarLabel,
   summarize,
@@ -40,16 +42,12 @@ function status(overrides: Partial<KeypadStatus> = {}): KeypadStatus {
 }
 
 describe("summarize", () => {
-  it("counts agents that need you, not their requests", () => {
-    expect(summarize(status({ attentionCount: 1, pendingPermissionCount: 1 }))).toBe(
-      "Keypad: 1 agent needs you",
-    );
-    expect(summarize(status({ attentionCount: 2, pendingPermissionCount: 3 }))).toBe(
-      "Keypad: 2 agents need you",
-    );
+  it("says that the keypad is ready, whether or not agents need action", () => {
+    const nextAgent = { id: "a", name: "Fix login", state: "needsInput" as const };
+    expect(summarize(status({ attentionCount: 1, nextAgent }))).toBe("Keypad ready");
   });
 
-  it("says only that the keypad is connected when no agent needs you", () => {
+  it("says only that the keypad is ready when no agent needs action", () => {
     for (const topKeyMode of [
       "navigation",
       "workspaces",
@@ -57,9 +55,9 @@ describe("summarize", () => {
       "recentAgents",
       "off",
     ] as const) {
-      expect(summarize(status({ topKeyMode }))).toBe("Keypad connected");
+      expect(summarize(status({ topKeyMode }))).toBe("Keypad ready");
     }
-    expect(summarize(status({ paseoAttached: false }))).toBe("Keypad connected");
+    expect(summarize(status({ paseoAttached: false }))).toBe("Keypad ready");
   });
 
   it("asks people to open the app when it is not running", () => {
@@ -103,7 +101,7 @@ describe("input layers", () => {
   it("accepts any input layer, such as a Paseo layer 2", () => {
     const layer2 = { ...keypad, layer: 2, inputLayers: [2, 4], lightsVisible: true };
     expect(offInputLayer(layer2)).toBe(false);
-    expect(summarize(status({ keypad: layer2 }))).toBe("Keypad connected");
+    expect(summarize(status({ keypad: layer2 }))).toBe("Keypad ready");
   });
 
   it("counts layer 4 alone for an app that does not report the layers", () => {
@@ -145,5 +143,51 @@ describe("topKeyLabel", () => {
     expect(topKeyLabel("workspaces", 0, undefined)).toBe("No workspace");
     expect(topKeyLabel("pinned", 0, undefined)).toBe("Not pinned");
     expect(topKeyLabel("off", 0, undefined)).toBe("Off");
+  });
+});
+
+describe("sidebarLabel", () => {
+  it("names the next agent's state with Paseo's words, without its long title", () => {
+    const name = "A very long agent title that would wrap onto a second line in the sidebar";
+    const next = (state: "needsInput" | "failed" | "done") => ({ id: "a", name, state });
+    expect(sidebarLabel(status({ nextAgent: next("needsInput") }))).toBe("Needs input");
+    expect(sidebarLabel(status({ nextAgent: next("failed") }))).toBe("Failed");
+    expect(sidebarLabel(status({ nextAgent: next("done") }))).toBe("Ready to review");
+  });
+
+  it("stays short enough for one line in every state", () => {
+    const off = { ...status().keypad!, layer: 1, inputLayers: [2, 4], lightsVisible: false };
+    expect(sidebarLabel(status({ keypad: off }))).toBe("Switch keypad layer");
+    expect(sidebarLabel(undefined).length).toBeLessThanOrEqual(20);
+  });
+
+  it("is short and calm when nothing needs action", () => {
+    expect(sidebarLabel(status())).toBe("Keypad ready");
+  });
+
+  it("says what keeps the keypad from working before any agent", () => {
+    const nextAgent = { id: "a", name: "Fix login", state: "needsInput" as const };
+    const off = { ...status().keypad!, connected: false };
+    expect(sidebarLabel(status({ keypad: off, nextAgent }))).toBe("Keypad not connected");
+    expect(keypadWorks(status({ keypad: off }))).toBe(false);
+    expect(keypadWorks(status())).toBe(true);
+  });
+});
+
+describe("connectionDetail", () => {
+  it("says how the keypad connects and its charge", () => {
+    expect(connectionDetail(status())).toBe("Connected via USB · 64% battery");
+    const charging = { ...status().keypad!, transport: "Bluetooth", charging: true };
+    expect(connectionDetail(status({ keypad: charging }))).toBe(
+      "Connected via Bluetooth · 64% battery, charging",
+    );
+    const unknown = { ...status().keypad!, transport: null, battery: null };
+    expect(connectionDetail(status({ keypad: unknown }))).toBe("Connected");
+  });
+
+  it("says nothing while the keypad is not connected", () => {
+    expect(connectionDetail(undefined)).toBeNull();
+    const off = { ...status().keypad!, connected: false };
+    expect(connectionDetail(status({ keypad: off }))).toBeNull();
   });
 });

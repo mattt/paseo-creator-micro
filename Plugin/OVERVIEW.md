@@ -18,8 +18,8 @@ and its keys, dial, and joystick act on them without the mouse.
 - The dial scrolls the open conversation, and a click jumps to the bottom.
 - The joystick opens a radial menu of common prompts and actions over Paseo's window.
 
-The settings show a picture of the keypad with each key's light and action,
-and let you change what most keys, the dial, and the joystick do.
+The settings show a picture of the keypad with each key's number and light,
+and below it a list, in key order, where you change what most keys, the dial, and the joystick do.
 
 ## Setup
 

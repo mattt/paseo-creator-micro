@@ -105,9 +105,28 @@ public struct MenuState: Sendable {
             MenuDetailRow(title: "Firmware", value: keypad.firmware ?? "—"),
             MenuDetailRow(title: "Layer", value: keypad.layerDescription),
             MenuDetailRow(title: "Lighting", value: lighting),
-            MenuDetailRow(title: "Last Input", value: lastInput.map(String.init(describing:)) ?? "—"),
+            MenuDetailRow(title: "Last Input", value: lastInput.map(Self.inputText) ?? "—"),
             MenuDetailRow(title: "Clients", value: clientsText),
         ]
+    }
+
+    /// An input in words for people, with keys numbered from 1, such as "Key 7 pressed".
+    ///
+    /// Logs keep `KeypadInput.description`, with 0-based indexes and firmware codes.
+    static func inputText(_ input: KeypadInput) -> String {
+        switch input {
+        case .key(let key):
+            "Key \(KeyDescription.number(key.key)) \(key.action == .press ? "pressed" : "released")"
+        case .dial(let action):
+            switch action {
+            case .clockwise: "Dial turned clockwise"
+            case .counterclockwise: "Dial turned counterclockwise"
+            case .press: "Dial pressed"
+            case .release: "Dial released"
+            }
+        case .joystick(let joystick):
+            joystick.isAtRest ? "Joystick at rest" : "Joystick pushed"
+        }
     }
 
     /// The text of the MCP row: the address, or why there is none.

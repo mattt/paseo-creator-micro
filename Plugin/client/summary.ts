@@ -1,9 +1,14 @@
 import { ACTIONS, type ActionId } from "../shared/actions";
-import type { KeyLight, KeypadInfo, KeypadStatus } from "../shared/rpc";
+import type { ACTION_STATES, KeyLight, KeypadInfo, KeypadStatus } from "../shared/rpc";
 import { NAVIGATION_KEY_ACTIONS, type TopKeyMode } from "../shared/settings";
 
 /** One line that says whether the keypad works, and what to do when it does not. */
 export function summarize(status: KeypadStatus | undefined): string {
+  return problem(status) ?? "Keypad ready";
+}
+
+/** What keeps the keypad from working, in a few words, or null when it works. */
+function problem(status: KeypadStatus | undefined): string | null {
   if (!status) return "Checking keypad…";
   const { bridge, keypad } = status;
   if (status.settings.status === "loading") return "Loading keypad settings…";
@@ -12,16 +17,39 @@ export function summarize(status: KeypadStatus | undefined): string {
   if (bridge.state !== "connected") return "Connecting to Paseo Micro…";
   if (!keypad?.connected) return "Keypad not connected";
   if (offInputLayer(keypad)) return `Switch your keypad to ${inputLayerList(keypad.inputLayers)}`;
-  const needs = status.attentionCount;
-  if (needs > 0) return `Keypad: ${needs} ${needs === 1 ? "agent needs" : "agents need"} you`;
-  return "Keypad connected";
+  return null;
 }
 
-/** The summary, in the few words that fit in the sidebar's footer. */
+/** Whether the keypad works: Paseo Micro and the keypad are connected, on an input layer. */
+export function keypadWorks(status: KeypadStatus | undefined): boolean {
+  return problem(status) === null;
+}
+
+/**
+ * The words of Paseo's own sidebar for the states of an agent that needs action:
+ * a finished result that nobody has read is "Ready to review".
+ */
+export const ATTENTION_LABELS: Readonly<Record<(typeof ACTION_STATES)[number], string>> = {
+  needsInput: "Needs input",
+  failed: "Failed",
+  done: "Ready to review",
+};
+
+/**
+ * The few words that fit on one line in the sidebar's footer: what keeps the keypad from working,
+ * else the state of the agent that key 7 opens next, such as "Needs input", else "Keypad ready".
+ * The agent's title is in the modal, since a sidebar row has no subtitle.
+ */
 export function sidebarLabel(status: KeypadStatus | undefined): string {
-  if (status?.settings.status === "ready" && status.bridge.state === "waiting")
-    return "Open Paseo Micro";
-  return summarize(status);
+  if (!status) return "Checking keypad…";
+  if (status.settings.status === "loading") return "Loading…";
+  if (status.settings.status === "error") return "Keypad settings error";
+  if (status.bridge.state === "waiting") return "Open Paseo Micro";
+  if (status.bridge.state !== "connected") return "Connecting…";
+  if (!status.keypad?.connected) return "Keypad not connected";
+  if (offInputLayer(status.keypad)) return "Switch keypad layer";
+  const next = status.nextAgent;
+  return next ? ATTENTION_LABELS[next.state] : "Keypad ready";
 }
 
 /**
@@ -77,4 +105,18 @@ export function joystickDetail(action: ActionId, text: string): string {
   if (action !== "sendPrompt") return action === "none" ? "—" : ACTIONS[action].label;
   const prompt = text.trim().replace(/\s+/g, " ");
   return prompt === "" ? "No prompt" : `"${prompt}"`;
+}
+
+/**
+ * How the keypad connects and its charge, as the menu bar app's header shows them,
+ * such as "Connected via USB · 64% battery"; null while the keypad is not connected.
+ */
+export function connectionDetail(status: KeypadStatus | undefined): string | null {
+  const keypad = status?.keypad;
+  if (status?.bridge.state !== "connected" || !keypad?.connected) return null;
+  const parts = [keypad.transport ? `Connected via ${keypad.transport}` : "Connected"];
+  if (keypad.battery !== null) {
+    parts.push(`${Math.round(keypad.battery)}% battery${keypad.charging ? ", charging" : ""}`);
+  }
+  return parts.join(" · ");
 }

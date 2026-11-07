@@ -213,8 +213,8 @@ Inputs without a release, such as dial turns, toggle dictation.
 The dial click acts on release, so binding it to push to talk also toggles dictation.
 
 Grouped keys use the first key's binding.
-In the keypad picture, select a key and use **One keycap with**
-to join it with the key to its right, or turn off **One keycap**.
+Under **Advanced > Double-wide keycaps**, turn on a pair of neighboring keys
+to join them under one keycap, or turn it off to separate them.
 The `keyGroups` setting stores these groups.
 
 Plain and fast scroll steps that arrive while a scroll waits
@@ -270,7 +270,7 @@ Approve and Deny in the radial menu require that target's own pending request
 and never answer another agent's request.
 Actions are checked again before execution.
 
-Select the radial menu in the keypad picture to edit each choice's icon,
+Under **Joystick**, select a choice in the ring to edit its icon,
 label, color, action, and prompt, or to turn the menu off.
 Icons come from the supplied SF Symbols list.
 The [default binding guide](../README.md#keys-and-default-bindings)
@@ -303,14 +303,17 @@ The [configuration guide](../README.md#configuration) explains where to open
 settings and assign inputs.
 The plugin's settings are grouped as follows:
 
-| Group        | Controls                                                                                                                                                 |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Keypad       | Plain status, top-key mode, single-tap opening, bindings, key groups, and radial choices                                                                 |
-| Lights       | State styles, selection brightness, selected-off light, navigation light, underglow, action-key lights, key backlight, thinking meter, and failure flash |
-| Agents       | Subagent inclusion and the target used without a selected workspace                                                                                      |
-| Scrolling    | Normal and fast lines per step, and the scroll position in Paseo's window                                                                                |
-| Push to talk | Return on release and the delay after dictation stops, including when Submit stops it                                                                    |
-| Advanced     | Collapsed: CLI path, socket path, the bundle ID that receives shortcuts, and Reconnect                                                                   |
+| Group                   | Controls                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Keypad                  | Plain status, and a numbered picture of the keypad whose parts highlight their rows below                                        |
+| Keys 1 to 6             | Top-key mode, single-tap opening, what each top key shows now, and Unpin                                                         |
+| Keys 7 to 13            | Each keycap's action and prompt                                                                                                  |
+| Dial                    | The action of each turn, held turn, and click                                                                                    |
+| Joystick                | The radial menu and its choices, or each direction's action                                                                      |
+| Lights                  | Underglow, selection brightness, and one editor for the style of each state, navigation, key backlight, meter, and failure light |
+| Agents                  | The target used without a selected workspace, and subagent inclusion                                                             |
+| Scrolling and dictation | Normal and fast lines per step, Return on release, and the delay after dictation stops                                           |
+| Advanced                | Collapsed: double-wide keycaps, action-key lights, scroll position, default actions, connection settings, and keypad details     |
 
 **Underglow** can show the next agent that needs action,
 light yellow while any agent needs input, or stay off.
@@ -323,7 +326,7 @@ The failure flash has its own style.
 
 New installs use settings version 14.
 Version 13 settings migrate to navigation on the top keys.
-Unchanged bindings on `ACT07`–`ACT09` become approve, deny, and new agent,
+Unchanged bindings on keys 8 to 10 (`ACT07`–`ACT09`) become approve, deny, and new agent,
 and unchanged radial Approve and Deny choices become Back and Forward.
 Custom bindings and radial choices are retained.
 
@@ -355,13 +358,13 @@ For users with older saved settings, these are the changes at each step:
   and joystick directions send prompts that start empty.
   Custom bindings remain.
   Held turns, scroll settings, and meter lights take their defaults.
-- **3 to 4** changes unchanged defaults so that `ACT06` opens the next agent
-  that needs action and `ACT12` submits.
+- **3 to 4** changes unchanged defaults so that key 7 (`ACT06`) opens the next agent
+  that needs action and key 13 (`ACT12`) submits.
   Custom bindings remain, except "Open next unread agent"
   becomes "Open next agent that needs action".
 - **2 to 3** changes unchanged defaults to workspace navigation,
-  joins `ACT10` and `ACT11` for push to talk,
-  and assigns `ACT12` to voice mode.
+  joins keys 11 and 12 (`ACT10` and `ACT11`) for push to talk,
+  and assigns key 13 (`ACT12`) to voice mode.
   Custom bindings remain, and the two switches become one keycap.
 - **1 to 2** drops agent pins and old state colors.
   Agent-selection bindings become workspace-selection bindings;
@@ -383,12 +386,15 @@ Fix or reset the stored settings to restore actions.
 The [configuration guide](../README.md#configuration) lists the pin commands
 and composer commands.
 Pins apply to Workspaces and Pinned workspaces modes.
-**Creator Micro: unpin every key** clears all pins.
-**Creator Micro: reconnect to the keypad app** reconnects immediately,
+**Creator Micro: unpin all keys** clears all pins.
+**Creator Micro: reconnect to Paseo Micro** reconnects immediately,
 replacing a connection that is still waiting for PaseoMicro to answer.
 
-Click the sidebar footer to see what each top key shows
-and the last action.
+The sidebar footer shows the state of the agent that key 7 opens next, such as "Needs input",
+with a dot in that state's light color, or says "Keypad ready".
+Click it to open a modal with that agent's name, a live picture of the keypad,
+a numbered list of what each key does, the top-key mode, the underglow,
+and a button that opens these settings.
 
 ## Development
 
@@ -418,6 +424,20 @@ It serves the default socket and accepts inputs such as
 From the repository root, `mise run fake-bridge:plugin` starts the same tool.
 The fake app refuses to start while PaseoMicro already serves the socket.
 Its inputs run real actions in your Paseo daemon.
+
+To see the settings screen and the sidebar without Paseo,
+run `mise run preview:plugin` from the repository root
+and open <http://127.0.0.1:5288/>.
+The development harness in
+[`Tools/plugin-harness/`](../Tools/plugin-harness/) serves them.
+
+It renders the plugin's client components with made-up data
+and stand-ins for Paseo's settings components, which only approximate Paseo's look.
+Query parameters choose the theme (`theme=light`), the top-key mode (`mode=workspaces`),
+the status (`state=waiting`, `disconnected`, or `layer`), the radial menu (`radial=off`),
+and parts to press (`click=Dial`).
+It connects to nothing and lives outside `Plugin/`, so the plugin does not ship it.
+Run `npm ci` in `Plugin/` first; the harness uses the plugin's React.
 
 [bridge-protocol.ts](server/bridge-protocol.ts) and
 [BridgeProtocol.swift](../Sources/PaseoMicroCore/BridgeProtocol.swift)

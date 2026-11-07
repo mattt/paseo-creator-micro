@@ -74,6 +74,11 @@ run = "npm --prefix Plugin run fmt"
 description = "Check plugin formatting, lint, types, and tests"
 run = "npm --prefix Plugin run check"
 
+[tasks."preview:plugin"]
+description = "Serve the plugin's settings screen with sample data at http://127.0.0.1:5288/"
+run = "npm --prefix Tools/plugin-harness ci && npm --prefix Tools/plugin-harness run dev"
+raw = true
+
 [tasks."fake-bridge:plugin"]
 description = "Run a fake PaseoMicro app on the default socket"
 run = "npm --prefix Plugin run fake-bridge"

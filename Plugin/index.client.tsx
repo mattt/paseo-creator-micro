@@ -1,8 +1,9 @@
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext, PluginSidebarItemProps } from "@getpaseo/plugin/client";
 import { WORKSPACE_KEY_COUNT } from "./shared/keypad";
 import { reconnectRpc, statusRpc } from "./shared/rpc";
 import { changePins, parseKeyNumber, pinWorkspace, unpinWorkspace } from "./client/pins";
 import { KeypadSettingsScreen } from "./client/settings-screen";
+import { KEYPAD_ICON } from "./client/keypad-icon";
 import { KeypadSidebarItem } from "./client/sidebar-status";
 
 const SETTINGS_SCREEN = "keypad";
@@ -16,27 +17,29 @@ export default function contribute(client: PluginClientContext) {
     client.addSettingsScreen({
       id: SETTINGS_SCREEN,
       title: "Keypad",
-      icon: "Keyboard",
+      icon: KEYPAD_ICON,
       Component: KeypadSettingsScreen,
     }),
     client.addSidebarFooterItem({
       id: "keypad-status",
       title: "Keypad",
-      Component: KeypadSidebarItem,
+      Component: (props: PluginSidebarItemProps) => (
+        <KeypadSidebarItem {...props} openSettings={() => client.openSettings(SETTINGS_SCREEN)} />
+      ),
     }),
     client.addCommandCenterItem({
       id: "open-settings",
-      title: "Creator Micro: keypad settings",
-      icon: "Keyboard",
+      title: "Creator Micro: open keypad settings",
+      icon: KEYPAD_ICON,
       keywords: ["keypad", "work louder", "creator micro", "keys"],
       context: "global",
       onSelect: ({ openSettings }) => openSettings(SETTINGS_SCREEN),
     }),
     client.addCommandCenterItem({
       id: "reconnect",
-      title: "Creator Micro: reconnect to the keypad app",
+      title: "Creator Micro: reconnect to Paseo Micro",
       icon: "RefreshCw",
-      keywords: ["keypad", "bridge", "paseomicro"],
+      keywords: ["keypad", "reconnect", "paseo micro"],
       context: "global",
       onSelect: async ({ rpc }) => {
         await rpc(reconnectRpc, {});
@@ -44,7 +47,7 @@ export default function contribute(client: PluginClientContext) {
     }),
     client.addCommandCenterItem({
       id: "unpin-all",
-      title: "Creator Micro: unpin every key",
+      title: "Creator Micro: unpin all keys",
       icon: "PinOff",
       keywords: ["keypad", "pin"],
       context: "global",
@@ -72,7 +75,7 @@ export default function contribute(client: PluginClientContext) {
     }),
     client.addSlashCommand({
       name: "keypad-pin-workspace",
-      description: "Pin this agent's workspace to a Creator Micro workspace key",
+      description: "Pin this agent's workspace to a Creator Micro top key",
       argumentHint: "<1-6>",
       context: "agent",
       onSubmit: ({ rpc, agent, args }) => {
