@@ -75,9 +75,9 @@ The menu shows the keypad's status, only the warnings that you can act on,
 and a drawing of the keypad whose lights follow the lights that the app keeps on it.
 The app does not read lights back from the keypad,
 and it shows the keypad's effects without matching their timing.
-The battery appears only when it is low or charging.
+The header always shows how the keypad is connected, over USB or Bluetooth, and its battery charge.
 Hold Option as it opens, or while it is open, to see each key's number,
-the battery, connection details, and the MCP address.
+the firmware, layer, lighting, last input, connected programs, and the MCP address.
 A dashed outline marks a key that has no light of its own on the current layer.
 
 ### Keypad layers and experimental features

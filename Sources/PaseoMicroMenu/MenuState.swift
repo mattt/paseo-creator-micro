@@ -73,12 +73,14 @@ public struct MenuState: Sendable {
         self.lights = lights
     }
 
-    /// The connection, as a word or two for the header.
+    /// The connection for the header, with how the keypad is connected when that is known.
     public var statusText: String {
-        keypad.connected ? "Connected" : "Not Connected"
+        guard keypad.connected else { return "Not Connected" }
+        guard let link = Self.linkName(keypad.transport) else { return "Connected" }
+        return "Connected via \(link)"
     }
 
-    /// The battery charge to show, when it is useful.
+    /// The battery charge for the header, whenever the keypad reports one.
     public var battery: BatteryIndicator? {
         guard keypad.connected, let percent = keypad.battery else { return nil }
         return BatteryIndicator(percent: percent, charging: keypad.charging == true)
@@ -100,8 +102,6 @@ public struct MenuState: Sendable {
     /// The rows of the Details section, in order.
     public var detailRows: [MenuDetailRow] {
         [
-            MenuDetailRow(title: "Connection", value: keypad.transport ?? "—"),
-            MenuDetailRow(title: "Battery", value: batteryText),
             MenuDetailRow(title: "Firmware", value: keypad.firmware ?? "—"),
             MenuDetailRow(title: "Layer", value: keypad.layerDescription),
             MenuDetailRow(title: "Lighting", value: lighting),
@@ -115,13 +115,12 @@ public struct MenuState: Sendable {
         mcpURL?.absoluteString ?? mcpError ?? "—"
     }
 
-    private var batteryText: String {
-        guard keypad.connected, let percent = keypad.battery else { return "—" }
-        switch keypad.charging {
-        case true?: return "\(percent)%, charging"
-        case false?: return "\(percent)%, not charging"
-        case nil: return "\(percent)%"
-        }
+    /// A readable name for the HID transport, such as "USB" or "Bluetooth", or `nil` when it is unknown.
+    static func linkName(_ transport: String?) -> String? {
+        guard let transport, !transport.isEmpty else { return nil }
+        if transport.localizedCaseInsensitiveContains("bluetooth") { return "Bluetooth" }
+        if transport.localizedCaseInsensitiveContains("usb") { return "USB" }
+        return transport
     }
 
     private var lighting: String {
@@ -154,7 +153,7 @@ public struct MenuDetailRow: Hashable, Sendable {
     }
 }
 
-/// The battery charge in the menu's header, which shows only when the battery is low or charging.
+/// The battery charge in the menu's header.
 public struct BatteryIndicator: Hashable, Sendable {
     /// The charge at or below which the battery counts as low, in percent.
     public static let lowPercent = 20
@@ -164,14 +163,12 @@ public struct BatteryIndicator: Hashable, Sendable {
     /// Whether the battery is charging.
     public var charging: Bool
 
-    /// Creates an indicator, if the charge is useful to show.
+    /// Creates an indicator.
     ///
     /// - Parameters:
     ///   - percent: The charge, in percent.
     ///   - charging: Whether the battery is charging.
-    /// - Returns: The indicator, or `nil` for a battery that is full or not low and not charging.
-    public init?(percent: Int, charging: Bool) {
-        guard percent <= Self.lowPercent || (charging && percent < 100) else { return nil }
+    public init(percent: Int, charging: Bool) {
         self.percent = percent
         self.charging = charging
     }
@@ -184,7 +181,13 @@ public struct BatteryIndicator: Hashable, Sendable {
     /// The SF Symbol for the charge.
     public var symbolName: String {
         if charging { return "battery.100percent.bolt" }
-        return percent <= 10 ? "battery.0percent" : "battery.25percent"
+        switch percent {
+        case ...10: return "battery.0percent"
+        case ...35: return "battery.25percent"
+        case ...60: return "battery.50percent"
+        case ...85: return "battery.75percent"
+        default: return "battery.100percent"
+        }
     }
 
     /// The charge, as the header shows it.

@@ -21,7 +21,7 @@ struct MenuStateTests {
 
     @Test("The header says whether the keypad is connected, in title case")
     func status() {
-        #expect(MenuState(keypad: connected()).statusText == "Connected")
+        #expect(MenuState(keypad: connected()).statusText == "Connected via USB")
         #expect(MenuState(keypad: .disconnected).statusText == "Not Connected")
     }
 
@@ -97,14 +97,35 @@ struct MenuStateTests {
     }
 
     @Test(
-        "The battery shows when low or charging",
+        "The battery's symbol follows its charge",
         arguments: [
-            (64, false, false), (21, false, false), (20, false, true), (5, false, true), (64, true, true),
-            (100, true, false),
+            (5, false, "battery.0percent"), (30, false, "battery.25percent"), (50, false, "battery.50percent"),
+            (80, false, "battery.75percent"), (100, false, "battery.100percent"),
+            (40, true, "battery.100percent.bolt"),
         ]
     )
-    func battery(percent: Int, charging: Bool, shown: Bool) {
-        #expect((BatteryIndicator(percent: percent, charging: charging) != nil) == shown)
+    func batterySymbol(percent: Int, charging: Bool, symbol: String) {
+        #expect(BatteryIndicator(percent: percent, charging: charging).symbolName == symbol)
+    }
+
+    @Test("The battery always shows while connected")
+    func batteryAlwaysShown() {
+        #expect(MenuState(keypad: connected(battery: 64)).battery?.text == "64%")
+        #expect(MenuState(keypad: connected(battery: 100)).battery?.text == "100%")
+    }
+
+    @Test(
+        "The header says how the keypad is connected",
+        arguments: [
+            ("USB", "Connected via USB"), ("Bluetooth", "Connected via Bluetooth"),
+            ("Bluetooth Low Energy", "Connected via Bluetooth"), ("", "Connected"),
+        ]
+    )
+    func statusText(transport: String, text: String) {
+        var keypad = connected()
+        keypad.transport = transport
+        #expect(MenuState(keypad: keypad).statusText == text)
+        #expect(MenuState(keypad: .disconnected).statusText == "Not Connected")
     }
 
     @Test("The battery is not shown without a keypad")
@@ -123,33 +144,14 @@ struct MenuStateTests {
         state.mcpURL = URL(string: "http://127.0.0.1:7655/mcp")
         #expect(
             state.detailRows.map(\.title) == [
-                "Connection", "Battery", "Firmware", "Layer", "Lighting", "Last Input", "Clients",
+                "Firmware", "Layer", "Lighting", "Last Input", "Clients",
             ]
         )
-        #expect(state.detailRows[4].value == "Not paused")
-        #expect(state.detailRows[6].value == "None")
+        #expect(state.detailRows[2].value == "Not paused")
+        #expect(state.detailRows[4].value == "None")
         #expect(state.mcpText == "http://127.0.0.1:7655/mcp")
         state.clients = ["one", "two"]
-        #expect(state.detailRows[6].value == "one, two")
-    }
-
-    @Test(
-        "Details show the battery's charge and charging state",
-        arguments: [
-            (64, false, "64%, not charging"), (64, true, "64%, charging"), (64, nil, "64%"),
-            (nil, nil, "—"),
-        ] as [(Int?, Bool?, String)]
-    )
-    func batteryDetail(percent: Int?, charging: Bool?, text: String) {
-        let state = MenuState(keypad: connected(battery: percent, charging: charging))
-        #expect(state.detailRows.first { $0.title == "Battery" }?.value == text)
-    }
-
-    @Test("Details show no battery without a keypad")
-    func batteryDetailDisconnected() {
-        var keypad = KeypadState.disconnected
-        keypad.battery = 5
-        #expect(MenuState(keypad: keypad).detailRows.first { $0.title == "Battery" }?.value == "—")
+        #expect(state.detailRows[4].value == "one, two")
     }
 
     @Test("A key shows as down only between its press and its release, while connected")
