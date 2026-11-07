@@ -341,10 +341,19 @@ public actor KeypadSession {
     /// Paints every light again if the ChatGPT app runs
     /// and the keypad is on an input layer other than the ChatGPT layer;
     /// the session calls it every ``chatGPTRepaintInterval``.
+    ///
+    /// A repaint that waits for the lighting queue checks again when its turn comes,
+    /// so that it paints nothing after ChatGPT quits.
     func repaintForChatGPT() async {
-        guard chatGPTRunning, state.connected, showsLights else { return }
-        await applyLights(everyLight: true)
+        guard repaintsForChatGPT else { return }
+        try? await lighting.run {
+            guard await self.repaintsForChatGPT else { return }
+            await self.replayLights(everyLight: true)
+        }
     }
+
+    /// Whether ``repaintForChatGPT()`` paints the lights now.
+    private var repaintsForChatGPT: Bool { chatGPTRunning && state.connected && showsLights }
 
     // MARK: - Private
 
