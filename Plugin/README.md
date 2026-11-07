@@ -323,7 +323,7 @@ The failure flash has its own style.
 
 New installs use settings version 14.
 Version 13 settings migrate to navigation on the top keys.
-Unchanged bindings on `ACT07`–`ACT09` become approve, deny, and new agent,
+Unchanged bindings on keys 8 to 10 (`ACT07`–`ACT09`) become approve, deny, and new agent,
 and unchanged radial Approve and Deny choices become Back and Forward.
 Custom bindings and radial choices are retained.
 
@@ -355,13 +355,13 @@ For users with older saved settings, these are the changes at each step:
   and joystick directions send prompts that start empty.
   Custom bindings remain.
   Held turns, scroll settings, and meter lights take their defaults.
-- **3 to 4** changes unchanged defaults so that `ACT06` opens the next agent
-  that needs action and `ACT12` submits.
+- **3 to 4** changes unchanged defaults so that key 7 (`ACT06`) opens the next agent
+  that needs action and key 13 (`ACT12`) submits.
   Custom bindings remain, except "Open next unread agent"
   becomes "Open next agent that needs action".
 - **2 to 3** changes unchanged defaults to workspace navigation,
-  joins `ACT10` and `ACT11` for push to talk,
-  and assigns `ACT12` to voice mode.
+  joins keys 11 and 12 (`ACT10` and `ACT11`) for push to talk,
+  and assigns key 13 (`ACT12`) to voice mode.
   Custom bindings remain, and the two switches become one keycap.
 - **1 to 2** drops agent pins and old state colors.
   Agent-selection bindings become workspace-selection bindings;

@@ -87,7 +87,7 @@ Switch to the stock "ChatGPT" layer (layer 4) for keys and dial.
 Paseo Micro finds input layers by reading `KV_OAI_` codes in `keymap.json`;
 other layers show a warning and cannot control Paseo.
 
-**The joystick radial menu and key 6's individual light need a custom keypad
+**The joystick radial menu and key 7's individual light need a custom keypad
 layer 2.**
 There is no supported setup tool yet.
 The stock layer 4 sends no joystick events on firmware 0.6.3.
@@ -95,34 +95,37 @@ The stock layer 4 sends no joystick events on firmware 0.6.3.
 Writing a keymap can leave the keypad needing a reflash.
 Work Louder's Input app may rewrite a custom layer.
 Paseo Micro itself never writes the keypad's files.
-With the stock layer, key 6 still opens the next agent and the underglow shows its state.
+With the stock layer, key 7 still opens the next agent and the underglow shows its state.
 
 ## Keys and default bindings
 
-Key indices are zero-based; some plugin settings label them 1-13.
-The rows contain 2, 4, 4, and 3 switches:
+Keys are numbered 1 to 13, as in the menu and the plugin's settings.
+Firmware codes such as `ACT06` count from 0, so key 7 is `ACT06`;
+the bridge, MCP, and logs also use 0-based indexes.
+The rows contain 2, 4, 4, and 3 switches,
+and keys 11 and 12 share one double-wide keycap:
 
 ```text
-       [0] [1]
-   [2] [3] [4] [5]
-   [6] [7] [8] [9]
-     [10] [11] [12]
+       [1] [2]
+   [3] [4] [5] [6]
+   [7] [8] [9] [10]
+     [ 11–12 ] [13]
 ```
 
 | Input | Default action |
 | --- | --- |
-| Key 0, `AG00` | Back through agents opened with the keypad |
-| Key 1, `AG01` | Forward through that history |
-| Key 2, `AG02` | Previous project |
-| Key 3, `AG03` | Previous workspace (`Cmd+[`) |
-| Key 4, `AG04` | Next workspace (`Cmd+]`) |
-| Key 5, `AG05` | Next project |
-| Key 6, `ACT06` or `AG06` | Open the next agent that needs action |
-| Key 7, `ACT07` | Approve a permission request |
-| Key 8, `ACT08` | Deny a permission request |
-| Key 9, `ACT09` | Start a new agent (`Cmd+O`) |
-| Keys 10 and 11, `ACT10` and `ACT11` | Push to talk, as one double-wide keycap |
-| Key 12, `ACT12` | Submit |
+| Key 1, `AG00` | Back through agents opened with the keypad |
+| Key 2, `AG01` | Forward through that history |
+| Key 3, `AG02` | Previous project |
+| Key 4, `AG03` | Previous workspace (`Cmd+[`) |
+| Key 5, `AG04` | Next workspace (`Cmd+]`) |
+| Key 6, `AG05` | Next project |
+| Key 7, `ACT06` or `AG06` | Open the next agent that needs action |
+| Key 8, `ACT07` | Approve a permission request |
+| Key 9, `ACT08` | Deny a permission request |
+| Key 10, `ACT09` | Start a new agent (`Cmd+O`) |
+| Keys 11–12, `ACT10` and `ACT11` | Push to talk, as one double-wide keycap |
+| Key 13, `ACT12` | Submit |
 | Dial clockwise / counterclockwise | Scroll down / up, 3 lines per step |
 | Held dial clockwise / counterclockwise | Scroll down / up, 15 lines per step |
 | Dial click | Jump to the bottom of the conversation |
@@ -143,9 +146,9 @@ Return slowly to the center to cancel.
 Escape, a keypad key, or a dial press also cancels without running another action.
 With the radial menu off, the four directions send separate prompts, initially empty.
 
-Key 6 cycles through agents that need action, longest waiting first,
+Key 7 cycles through agents that need action, longest waiting first,
 without repeating an agent until the round ends.
-The underglow and, on the custom layer, key 6 show the next agent's state:
+The underglow and, on the custom layer, key 7 show the next agent's state:
 red for failure, breathing yellow for input, green for an unread result, and off for none.
 Subagents are excluded unless **Include subagents** is enabled.
 
@@ -242,7 +245,7 @@ build/PaseoMicro.app/Contents/MacOS/micro clear
   While ChatGPT runs, Paseo Micro pauses writes on the layer named "ChatGPT"
   (layer 4 if no name is found).
   On other input layers it repaints every 30 seconds because ChatGPT resets lights.
-- If key 6 has no individual light or the joystick does nothing, read
+- If key 7 has no individual light or the joystick does nothing, read
   [the custom layer limits](#keypad-layers-and-experimental-features).
 - If shortcuts or scrolling fail, check Accessibility permission.
   If permission is already enabled, turn it off and on again.
