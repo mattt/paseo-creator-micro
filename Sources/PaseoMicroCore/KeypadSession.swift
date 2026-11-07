@@ -90,8 +90,11 @@ public actor KeypadSession {
     private var chatGPTLayer = InputLayers.fallbackChatGPTLayer
     /// The layers that the keypad reported since the last keymap read.
     private var seenLayers: Set<Int> = []
-    /// When the session last read the keymap, to read it at most once per refresh interval.
+    /// When the session last read the keymap, to read it at most once per refresh interval;
+    /// `nil` until the read that follows a connection starts.
     private var keymapReadAt: ContinuousClock.Instant?
+    /// The work that follows the latest connection: see ``didConnect()``.
+    private var connecting: Task<Void, Never>?
     private var tasks: [Task<Void, Never>] = []
     private var subscribers: [UUID: AsyncThrowingStream<SessionEvent, any Error>.Continuation] = [:]
     private let lighting = SerialQueue()
@@ -311,7 +314,8 @@ public actor KeypadSession {
     }
 
     /// Asks the keypad for its status now, reads the keymap again if the keypad reports a layer
-    /// that the session has not seen since its last read (at most once per refresh interval),
+    /// that the session has not seen since its last read (at most once per refresh interval,
+    /// and never before the read that follows a connection),
     /// and sends the lights again if the keypad returned to an input layer where lighting is not paused,
     /// such as when it leaves the ChatGPT layer while ChatGPT runs.
     public func poll() async {
@@ -321,7 +325,8 @@ public actor KeypadSession {
         apply(status)
         if let layer = status.layer, !seenLayers.contains(layer) {
             seenLayers.insert(layer)
-            if keymapReadAt.map({ ContinuousClock.now - $0 >= keymapRefreshInterval }) ?? true {
+            // Before the read that follows a connection starts, that read covers this layer.
+            if let keymapReadAt, ContinuousClock.now - keymapReadAt >= keymapRefreshInterval {
                 await readInputLayers()
             }
         }
@@ -336,10 +341,19 @@ public actor KeypadSession {
     /// Paints every light again if the ChatGPT app runs
     /// and the keypad is on an input layer other than the ChatGPT layer;
     /// the session calls it every ``chatGPTRepaintInterval``.
+    ///
+    /// A repaint that waits for the lighting queue checks again when its turn comes,
+    /// so that it paints nothing after ChatGPT quits.
     func repaintForChatGPT() async {
-        guard chatGPTRunning, state.connected, showsLights else { return }
-        await applyLights(everyLight: true)
+        guard repaintsForChatGPT else { return }
+        try? await lighting.run {
+            guard await self.repaintsForChatGPT else { return }
+            await self.replayLights(everyLight: true)
+        }
     }
+
+    /// Whether ``repaintForChatGPT()`` paints the lights now.
+    private var repaintsForChatGPT: Bool { chatGPTRunning && state.connected && showsLights }
 
     // MARK: - Private
 
@@ -348,7 +362,7 @@ public actor KeypadSession {
         case .connected(let device):
             resetInputLayers()
             update(makeState(transport: device.transport))
-            Task { await self.didConnect() }
+            connecting = Task { await self.didConnect() }
         case .disconnected:
             update(disconnectedState)
         case .input(let input):
@@ -373,7 +387,7 @@ public actor KeypadSession {
             if !state.connected {
                 update(makeState(transport: device.transport))
             }
-            Task { await self.didConnect() }
+            connecting = Task { await self.didConnect() }
         } else {
             update(disconnectedState)
         }
@@ -558,6 +572,12 @@ public actor KeypadSession {
     }
 
     // MARK: - Testing
+
+    /// Waits until the work that follows the latest connection finishes:
+    /// the version, the keymap read, the status, and the lights, for tests.
+    func waitForConnection() async {
+        await connecting?.value
+    }
 
     /// The number of streams from ``updates()`` that are open, for tests.
     var subscriberCount: Int { subscribers.count }
