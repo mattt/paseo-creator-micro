@@ -1,6 +1,6 @@
 // Renders the settings screen beside a sidebar with the plugin's footer row and its popover.
 // Query parameters: theme=dark|light, mode=<top key mode>, radial=on|off,
-// state=connected|idle|waiting|disconnected|layer, next=needsInput|failed|done,
+// state=connected|idle|waiting|disconnected|layer, next=needsInput|failed|done, title=<agent>,
 // view=settings|sidebar, and click=<accessibility label>.
 import type { PluginTheme } from "@getpaseo/plugin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

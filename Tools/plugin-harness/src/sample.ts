@@ -100,7 +100,7 @@ export function sampleStatus(settings: KeypadSettings, params: URLSearchParams):
         ? null
         : {
             id: "agent-0",
-            name: "Fix login redirect",
+            name: params.get("title") ?? "Fix login redirect",
             state: (params.get("next") ?? "needsInput") as "needsInput" | "failed" | "done",
           },
     actionKeys: [

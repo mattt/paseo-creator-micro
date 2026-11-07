@@ -406,8 +406,13 @@ export function SidebarRow({
           borderRadius: 6,
         }}
       >
-        <Icon icon={icon} size={16} color={theme.colors.foregroundMuted} />
-        <Text numberOfLines={1} style={{ color: theme.colors.foreground, fontSize: 13 }}>
+        <View style={{ width: 16, height: 16, flexShrink: 0 }}>
+          <Icon icon={icon} size={16} color={theme.colors.foregroundMuted} />
+        </View>
+        <Text
+          numberOfLines={1}
+          style={{ flexShrink: 1, color: theme.colors.foreground, fontSize: 13 }}
+        >
           {label}
         </Text>
       </Pressable>
