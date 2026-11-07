@@ -26,7 +26,13 @@ import {
 import { KEYPAD_ICON } from "./keypad-icon";
 import { KeypadPicture } from "./keypad-picture";
 import { useKeypadStatus } from "./status";
-import { connectionDetail, keypadWorks, sidebarLabel, summarize } from "./summary";
+import {
+  ATTENTION_LABELS,
+  connectionDetail,
+  keypadWorks,
+  sidebarLabel,
+  summarize,
+} from "./summary";
 
 /** The keypad glyph, dimmed while the keypad does not work. */
 function DimmedKeypadIcon({ size, color }: PluginIconProps) {
@@ -61,7 +67,8 @@ function attentionColor(
 }
 
 /**
- * A sidebar footer row with the keypad glyph and the agent that key 7 opens next.
+ * A sidebar footer row with the keypad glyph and, in a few words, the state of the agent
+ * that key 7 opens next; the modal names the agent.
  * Its dot shows that agent's state in the keypad's colors, like the underglow;
  * there is no dot when nothing needs action, and the glyph dims while the keypad does not work.
  * A press opens a modal with the keypad and its most used settings.
@@ -161,6 +168,12 @@ function KeypadModalBody({
               : (connectionDetail(status) ?? undefined))
           }
         />
+        {works && status?.nextAgent ? (
+          <SettingsRow
+            label={ATTENTION_LABELS[status.nextAgent.state]}
+            hint={`${status.nextAgent.name}. Key 7 opens it.`}
+          />
+        ) : null}
         {status?.bridge.state === "waiting" ? (
           <SettingsAction
             label="Already open?"

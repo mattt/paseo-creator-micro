@@ -148,15 +148,18 @@ describe("topKeyLabel", () => {
 });
 
 describe("sidebarLabel", () => {
-  it("names the next agent that needs action with Paseo's words for its state", () => {
-    const next = (state: "needsInput" | "failed" | "done") => ({
-      id: "a",
-      name: "Fix login",
-      state,
-    });
-    expect(sidebarLabel(status({ nextAgent: next("needsInput") }))).toBe("Needs input: Fix login");
-    expect(sidebarLabel(status({ nextAgent: next("failed") }))).toBe("Failed: Fix login");
-    expect(sidebarLabel(status({ nextAgent: next("done") }))).toBe("Ready to review: Fix login");
+  it("names the next agent's state with Paseo's words, without its long title", () => {
+    const name = "A very long agent title that would wrap onto a second line in the sidebar";
+    const next = (state: "needsInput" | "failed" | "done") => ({ id: "a", name, state });
+    expect(sidebarLabel(status({ nextAgent: next("needsInput") }))).toBe("Needs input");
+    expect(sidebarLabel(status({ nextAgent: next("failed") }))).toBe("Failed");
+    expect(sidebarLabel(status({ nextAgent: next("done") }))).toBe("Ready to review");
+  });
+
+  it("stays short enough for one line in every state", () => {
+    const off = { ...status().keypad!, layer: 1, inputLayers: [2, 4], lightsVisible: false };
+    expect(sidebarLabel(status({ keypad: off }))).toBe("Switch keypad layer");
+    expect(sidebarLabel(undefined).length).toBeLessThanOrEqual(20);
   });
 
   it("is short and calm when nothing needs action", () => {

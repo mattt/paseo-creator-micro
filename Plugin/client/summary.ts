@@ -36,18 +36,20 @@ export const ATTENTION_LABELS: Readonly<Record<(typeof ACTION_STATES)[number], s
 };
 
 /**
- * The few words that fit in the sidebar's footer: what keeps the keypad from working,
- * else the agent that key 7 opens next with its state, such as "Needs input: Fix login",
- * else "Keypad ready".
+ * The few words that fit on one line in the sidebar's footer: what keeps the keypad from working,
+ * else the state of the agent that key 7 opens next, such as "Needs input", else "Keypad ready".
+ * The agent's title is in the modal, since a sidebar row has no subtitle.
  */
 export function sidebarLabel(status: KeypadStatus | undefined): string {
-  if (status?.settings.status === "ready" && status.bridge.state === "waiting") {
-    return "Open Paseo Micro";
-  }
-  const text = problem(status);
-  if (text !== null) return text;
-  const next = status?.nextAgent;
-  return next ? `${ATTENTION_LABELS[next.state]}: ${next.name}` : "Keypad ready";
+  if (!status) return "Checking keypad…";
+  if (status.settings.status === "loading") return "Loading…";
+  if (status.settings.status === "error") return "Keypad settings error";
+  if (status.bridge.state === "waiting") return "Open Paseo Micro";
+  if (status.bridge.state !== "connected") return "Connecting…";
+  if (!status.keypad?.connected) return "Keypad not connected";
+  if (offInputLayer(status.keypad)) return "Switch keypad layer";
+  const next = status.nextAgent;
+  return next ? ATTENTION_LABELS[next.state] : "Keypad ready";
 }
 
 /**
