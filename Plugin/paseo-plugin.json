@@ -2,6 +2,7 @@
   "id": "creator-micro",
   "name": "Creator Micro",
   "description": "Show Paseo workspaces and their agents' state on a Work Louder Creator Micro 2 keypad and control Paseo from its keys, dial, and joystick.",
+  "icon": "assets/icon.png",
   "media": [],
   "requirements": {
     "paseo": ">=0.13.0"
