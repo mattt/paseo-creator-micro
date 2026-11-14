@@ -274,8 +274,8 @@ With `PASEO_MICRO_EMULATED=1`, click a key in the menu or use its dial and joyst
 The menu bar uses template PDFs in `Sources/PaseoMicro/Resources/`.
 The disconnected state uses the connected image at 40 percent opacity;
 the attention state adds an exclamation mark.
-The plugin's icon, `Plugin/assets/icon.png`, is the app icon's dark appearance:
-the keys from `App/AppIcon.icon/Assets/KeysDark.svg` on the dark tile,
+The plugin's icon, `Plugin/assets/icon.png`, draws the app icon's dark keys and tile
+in the keypad's proportions from `KeypadMetrics`,
 with a light outline so the tile's edge shows on Paseo's dark background.
 Run `mise run generate:icons` from the repository root to regenerate them,
 render each menu bar state at 1x and 2x on light and dark backgrounds,
