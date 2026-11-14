@@ -1,7 +1,7 @@
 // Run from the repository root with Xcode's Swift toolchain:
 // swift Scripts/plugin-icon.swift [preview-directory]
 // Regenerates the plugin's manifest icon, a light-on-dark keypad
-// in the proportions of the physical unit, and renders it at 512, 64, and 32 pixels
+// in the proportions of the physical unit, and renders it at 512, 64, 32, and 16 pixels
 // on Paseo's dark and light backgrounds.
 import AppKit
 import SwiftUI
@@ -21,13 +21,15 @@ let tile = CGRect(x: 50, y: 50, width: 412, height: 412)
 // the body is the tile, and the keys fill the grid at its center.
 let bodyPoints: CGFloat = 207
 let bodyCornerPoints: CGFloat = 32
-let keyPoints: CGFloat = 36
-let gapPoints: CGFloat = 5
+let gridPoints: CGFloat = 159
 let scale = tile.width / bodyPoints
 let cornerRadius = bodyCornerPoints * scale
-let key = keyPoints * scale
-let gap = gapPoints * scale
-let grid = key * 4 + gap * 3
+let grid = gridPoints * scale
+// The device's 5-point gaps would be 10 pixels, under a pixel at 32 pixels,
+// where the keys run together. Widen the gaps to a full pixel at that size
+// and narrow the keys to keep the grid's size.
+let gap: CGFloat = 16
+let key = (grid - gap * 3) / 4
 let gridOrigin = CGPoint(x: tile.midX - grid / 2, y: tile.midY - grid / 2)
 
 // The dark fill in App/AppIcon.icon/icon.json and the keys in KeysDark.svg.
@@ -152,7 +154,7 @@ writePNG(icon, to: iconURL)
 
 // Paseo's surface0 colors in its dark and light themes.
 for (name, background) in [("dark", (0x10, 0x10, 0x12)), ("light", (0xFF, 0xFF, 0xFF))] {
-    for pixels in [512, 64, 32] {
+    for pixels in [512, 64, 32, 16] {
         let margin = pixels / 4
         let preview = makeContext(width: pixels + 2 * margin, height: pixels + 2 * margin)
         preview.setFillColor(

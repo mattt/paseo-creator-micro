@@ -277,9 +277,11 @@ the attention state adds an exclamation mark.
 The plugin's icon, `Plugin/assets/icon.png`, draws the app icon's dark keys and tile
 in the keypad's proportions from `KeypadMetrics`,
 with a light outline so the tile's edge shows on Paseo's dark background.
+Paseo accepts one PNG for the icon, so the gaps between keys are wider than the device's
+to keep the keys apart at 32 pixels.
 Run `mise run generate:icons` from the repository root to regenerate them,
 render each menu bar state at 1x and 2x on light and dark backgrounds,
-and render the plugin icon at 512, 64, and 32 pixels on Paseo's backgrounds
+and render the plugin icon at 512, 64, 32, and 16 pixels on Paseo's backgrounds
 in `/tmp/paseo-micro-icons/`.
 Use Xcode's Swift toolchain, as for the build tasks.
 The app build copies the SwiftPM resource bundle into the app before signing it.
