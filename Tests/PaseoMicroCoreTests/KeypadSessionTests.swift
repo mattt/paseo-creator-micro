@@ -48,7 +48,7 @@ struct KeypadSessionTests {
     func setsLights() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.connected })
+        #expect(await waitForConnection(session))
         let light = KeyLight(key: 0, color: LightColor(packed: 0xFF2D2D), effect: .breathing)
         try await session.setKeyLights([light])
         try await session.setZones(keys: ZoneLight(color: .white, brightness: 0.3), ambient: nil)
@@ -65,7 +65,7 @@ struct KeypadSessionTests {
     func reappliesAfterReconnect() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.connected })
+        #expect(await waitForConnection(session))
         let light = KeyLight(key: 5, color: LightColor(packed: 0x00FF00))
         try await session.setKeyLights([light])
         try await session.setZones(keys: nil, ambient: ZoneLight(color: LightColor(packed: 0x0000FF)))
@@ -94,7 +94,8 @@ struct KeypadSessionTests {
     func reappliesOnLayer4() async throws {
         let keypad = EmulatedKeypad(layer: 4)
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.layer == 4 })
+        #expect(await waitForConnection(session))
+        #expect(await session.state.layer == 4)
         try await session.setKeyLights([KeyLight(key: 1, color: .white)])
         keypad.setLayer(2)
         #expect(await eventually { await session.state.layer == 2 })
@@ -108,7 +109,7 @@ struct KeypadSessionTests {
     func clears() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.connected })
+        #expect(await waitForConnection(session))
         try await session.setKeyLights([KeyLight(key: 1, color: .white)])
         try await session.clearLights()
         #expect(await session.lights.isEmpty)
@@ -122,7 +123,7 @@ struct KeypadSessionTests {
     func unsetZoneIsOff() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.connected })
+        #expect(await waitForConnection(session))
         let blue = ZoneLight(color: LightColor(packed: 0x0000FF))
         try await session.setZones(keys: nil, ambient: blue)
         #expect(keypad.zones == ZoneLights(keys: .off, ambient: blue))
@@ -134,7 +135,7 @@ struct KeypadSessionTests {
     func partialZonesAfterClear() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.connected })
+        #expect(await waitForConnection(session))
         let red = ZoneLight(color: LightColor(packed: 0xFF0000))
         let blue = ZoneLight(color: LightColor(packed: 0x0000FF))
         try await session.setZones(keys: .init(color: .white), ambient: red)
@@ -159,7 +160,8 @@ struct KeypadSessionTests {
     func replayKeepsNewerZones() async throws {
         let keypad = EmulatedKeypad(layer: 4)
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.layer == 4 })
+        #expect(await waitForConnection(session))
+        #expect(await session.state.layer == 4)
         let red = ZoneLight(color: LightColor(packed: 0xFF0000))
         let blue = ZoneLight(color: LightColor(packed: 0x0000FF))
         try await session.setKeyLights([KeyLight(key: 5, color: .white)])
@@ -186,7 +188,7 @@ struct KeypadSessionTests {
     func clearKeepsNewerZones() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.connected })
+        #expect(await waitForConnection(session))
         let red = ZoneLight(color: LightColor(packed: 0xFF0000))
         let blue = ZoneLight(color: LightColor(packed: 0x0000FF))
         try await session.setZones(keys: .init(color: .white), ambient: red)
@@ -212,7 +214,8 @@ struct KeypadSessionTests {
     func pausesLighting() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.layer == 4 })
+        #expect(await waitForConnection(session))
+        #expect(await session.state.layer == 4)
         await session.setChatGPTRunning(true)
         #expect(await session.lightsPaused)
         keypad.clearRequests()
@@ -231,7 +234,8 @@ struct KeypadSessionTests {
         keypad.unplug()
         #expect(await eventually { await !session.state.connected })
         keypad.plugIn()
-        #expect(await eventually { await session.state.layer == 4 })
+        #expect(await waitForConnection(session))
+        #expect(await session.state.layer == 4)
         keypad.setLayer(1)
         #expect(await eventually { await session.state.layer == 1 })
         keypad.setLayer(4)
@@ -251,7 +255,8 @@ struct KeypadSessionTests {
     func clearWhilePaused() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.layer == 4 })
+        #expect(await waitForConnection(session))
+        #expect(await session.state.layer == 4)
         let red = KeyLight(key: 3, color: LightColor(packed: 0xFF0000))
         let blue = ZoneLight(color: LightColor(packed: 0x0000FF))
         try await session.setKeyLights([red])
@@ -273,7 +278,8 @@ struct KeypadSessionTests {
     func partialUpdateAfterPausedClear() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.layer == 4 })
+        #expect(await waitForConnection(session))
+        #expect(await session.state.layer == 4)
         let red = LightColor(packed: 0xFF0000)
         try await session.setKeyLights([KeyLight(key: 0, color: red), KeyLight(key: 2, color: red)])
         try await session.setZones(keys: nil, ambient: ZoneLight(color: red))
@@ -294,7 +300,8 @@ struct KeypadSessionTests {
     func clearInterruptedByDisconnect() async throws {
         let keypad = EmulatedKeypad()
         let session = await startSession(keypad)
-        #expect(await eventually { await session.state.layer == 4 })
+        #expect(await waitForConnection(session))
+        #expect(await session.state.layer == 4)
         try await session.setKeyLights([KeyLight(key: 6, color: .white)])
         try await session.setZones(keys: nil, ambient: ZoneLight(color: LightColor(packed: 0x0000FF)))
 
