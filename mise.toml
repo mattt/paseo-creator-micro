@@ -19,8 +19,8 @@ description = "Format the Swift sources with swift format"
 run = "swift format --in-place --recursive Package.swift Sources Tests"
 
 [tasks."generate:icons"]
-description = "Regenerate menu bar template PDFs and light and dark previews at 1x and 2x"
-run = "swift Scripts/menu-bar-icons.swift"
+description = "Regenerate the menu bar template PDFs and the plugin icon, with light and dark previews"
+run = ["swift Scripts/menu-bar-icons.swift", "swift Scripts/plugin-icon.swift"]
 
 [tasks."render:menu"]
 description = "Render the menu's sample states, in light and dark, to build/menu-previews/"
