@@ -18,7 +18,8 @@ struct ChatGPTLightingTests {
         keypad.requests.map(\.method).filter(Self.lightingMethods.contains)
     }
 
-    /// Starts a session on a keypad whose input layers are 2 (the Paseo layer) and 4 ("ChatGPT").
+    /// Starts a session on a keypad whose input layers are 2 (the Paseo layer) and 4 ("ChatGPT"),
+    /// and waits until the lighting writes that follow the connection finish.
     private func start(
         layer: Int,
         keymap: String = paseoLayer2Keymap,
@@ -26,12 +27,10 @@ struct ChatGPTLightingTests {
     ) async -> (EmulatedKeypad, KeypadSession) {
         let keypad = EmulatedKeypad(layer: layer, keymap: keymap)
         let session = await startSession(keypad, repaintInterval: repaintInterval)
-        #expect(
-            await eventually {
-                let state = await session.state
-                return state.layer == layer && state.inputLayers == [2, 4]
-            }
-        )
+        #expect(await waitForConnection(session))
+        let state = await session.state
+        #expect(state.layer == layer)
+        #expect(state.inputLayers == [2, 4])
         return (keypad, session)
     }
 
@@ -174,8 +173,8 @@ struct ChatGPTLightingTests {
         keypad.clearRequests()
         #expect(await eventually { keypad.requests.filter { $0.method == KeypadMethod.zones }.count >= 2 })
 
+        // A repaint that waits behind the one for the quit paints nothing.
         await session.setChatGPTRunning(false)
-        try await Task.sleep(for: .milliseconds(50))
         keypad.clearRequests()
         try await Task.sleep(for: .milliseconds(350))
         #expect(lightingWrites(keypad).isEmpty)

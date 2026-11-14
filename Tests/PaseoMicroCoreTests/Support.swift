@@ -2,7 +2,7 @@ import CoreGraphics
 import CreatorMicro
 import Darwin
 import Foundation
-import PaseoMicroCore
+@testable import PaseoMicroCore
 import Synchronization
 
 /// Waits until a condition holds, polling every 10 milliseconds.
@@ -111,6 +111,14 @@ func startSession(
     )
     await session.start()
     return session
+}
+
+/// Waits until a session connects and finishes the work that follows the connection,
+/// so that no keymap read or lighting write from it is still in flight.
+func waitForConnection(_ session: KeypadSession) async -> Bool {
+    guard await eventually({ await session.state.connected }) else { return false }
+    await session.waitForConnection()
+    return true
 }
 
 /// A short, unique socket path in the temporary folder.
