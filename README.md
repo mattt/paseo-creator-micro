@@ -274,8 +274,12 @@ With `PASEO_MICRO_EMULATED=1`, click a key in the menu or use its dial and joyst
 The menu bar uses template PDFs in `Sources/PaseoMicro/Resources/`.
 The disconnected state uses the connected image at 40 percent opacity;
 the attention state adds an exclamation mark.
-Run `mise run generate:icons` from the repository root to regenerate them
-and render each state at 1x and 2x on light and dark backgrounds
+The plugin's icon, `Plugin/assets/icon.png`, is the app icon's dark appearance:
+the keys from `App/AppIcon.icon/Assets/KeysDark.svg` on the dark tile,
+with a light outline so the tile's edge shows on Paseo's dark background.
+Run `mise run generate:icons` from the repository root to regenerate them,
+render each menu bar state at 1x and 2x on light and dark backgrounds,
+and render the plugin icon at 512, 64, and 32 pixels on Paseo's backgrounds
 in `/tmp/paseo-micro-icons/`.
 Use Xcode's Swift toolchain, as for the build tasks.
 The app build copies the SwiftPM resource bundle into the app before signing it.
