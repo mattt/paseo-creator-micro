@@ -132,6 +132,7 @@ func temporarySocketPath() -> String {
 ///
 /// An activated app comes to the front after a delay, as a real app does,
 /// or never, when the delay is `nil`.
+/// With `holdsActivation`, `activate` does not return until its task is canceled.
 final class RecordingInterface: InterfaceDriver {
     enum Call: Equatable, Sendable {
         case open(URL)
@@ -157,16 +158,19 @@ final class RecordingInterface: InterfaceDriver {
 
     private let state: Mutex<State>
     private let activationDelay: Duration?
+    private let holdsActivation: Bool
 
     /// Creates the driver. `windows` holds each app's frontmost window, by bundle ID.
     init(
         trusted: Bool = true,
         frontmost: String? = nil,
         windows: [String: AppWindow] = [:],
-        activationDelay: Duration? = .milliseconds(30)
+        activationDelay: Duration? = .milliseconds(30),
+        holdsActivation: Bool = false
     ) {
         state = Mutex(State(trusted: trusted, frontmost: frontmost, windows: windows))
         self.activationDelay = activationDelay
+        self.holdsActivation = holdsActivation
     }
 
     var calls: [Call] { state.withLock { $0.calls } }
@@ -191,6 +195,9 @@ final class RecordingInterface: InterfaceDriver {
 
     func activate(bundleIdentifier: String) async throws {
         state.withLock { $0.calls.append(.activate(bundleIdentifier)) }
+        if holdsActivation {
+            while true { try await Task.sleep(for: .seconds(60)) }
+        }
         guard let activationDelay else { return }
         Task {
             try? await Task.sleep(for: activationDelay)

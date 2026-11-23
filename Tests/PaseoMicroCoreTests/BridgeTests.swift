@@ -578,9 +578,10 @@ struct BridgeTests {
         #expect(interface.calls == one + two || interface.calls == two + one)
     }
 
-    @Test("Closing the bridge drops a shortcut that waits for another")
+    @Test("Closing the bridge drops a shortcut that waits for another", .timeLimit(.minutes(1)))
     func closeDropsQueuedShortcut() async throws {
-        let interface = RecordingInterface(frontmost: "com.apple.finder", activationDelay: nil)
+        // The first shortcut holds the queue until the bridge closes, however slowly the test runs.
+        let interface = RecordingInterface(frontmost: "com.apple.finder", holdsActivation: true)
         let session = await startSession(EmulatedKeypad())
         let path = temporarySocketPath()
         defer {
@@ -602,9 +603,8 @@ struct BridgeTests {
         send(#"{"type":"sendShortcut","id":2,"shortcut":"cmd+e","bundleID":"app.two","activate":true}"#, to: second)
         try await Task.sleep(for: .milliseconds(200))
         bridge.close()
-        #expect(await finishes(running))
-        // Wait past the activation timeout, in case the queued shortcut still runs.
-        try await Task.sleep(for: .milliseconds(1200))
+        // When the bridge stops, it has canceled and waited for every connection's work.
+        #expect(await finishes(running, within: .seconds(10)))
         #expect(interface.calls == [.activate("app.one")])
         await session.stop()
     }
