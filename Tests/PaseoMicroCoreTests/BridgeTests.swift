@@ -223,10 +223,20 @@ struct BridgeTests {
         #expect(await finishes(newRunning))
     }
 
-    @Test("Disconnects a client that does not read, and keeps serving the others")
+    @Test("Disconnects a client that does not read, and keeps serving the others", .timeLimit(.minutes(1)))
     func disconnectsSlowClient() async throws {
         let keypad = EmulatedKeypad()
-        let session = await startSession(keypad)
+        let taps = 3000
+        // The session's buffers hold the whole burst, so that only the stalled client's queue overflows.
+        // A session that falls behind drops inputs by design, and could drop key 2's tap below.
+        let session = KeypadSession(
+            transport: keypad,
+            pollInterval: .seconds(60),
+            requestTimeout: .seconds(1),
+            eventBufferLimit: 2 * taps + 16,
+            updateBufferLimit: 2 * taps + 16
+        )
+        await session.start()
         #expect(await eventually { await session.state.connected })
         let path = temporarySocketPath()
         defer {
@@ -242,11 +252,16 @@ struct BridgeTests {
         let stalled = try connectUnix(path: path)
         defer { close(stalled) }
         #expect(await eventually { bridge.clients.count == 1 })
-        for _ in 0 ..< 3000 { keypad.tap(key: 0) }
-        #expect(await eventually(timeout: .seconds(5)) { bridge.clients.isEmpty })
+        for _ in 0 ..< taps { keypad.tap(key: 0) }
+        #expect(await eventually(timeout: .seconds(20)) { bridge.clients.isEmpty })
         // Let the burst finish before another client connects, so that it does not overflow that client too.
+        // Key 2's release follows the whole burst, so the generous timeout only bounds a failure.
         keypad.tap(key: 2)
-        #expect(await eventually { await session.lastInput == .key(KeyInput(key: 2, action: .release)) })
+        #expect(
+            await eventually(timeout: .seconds(20)) {
+                await session.lastInput == .key(KeyInput(key: 2, action: .release))
+            }
+        )
 
         let client = try await BridgeClient.connect(path: path)
         try await client.run { messages, _ in
@@ -563,9 +578,10 @@ struct BridgeTests {
         #expect(interface.calls == one + two || interface.calls == two + one)
     }
 
-    @Test("Closing the bridge drops a shortcut that waits for another")
+    @Test("Closing the bridge drops a shortcut that waits for another", .timeLimit(.minutes(1)))
     func closeDropsQueuedShortcut() async throws {
-        let interface = RecordingInterface(frontmost: "com.apple.finder", activationDelay: nil)
+        // The first shortcut holds the queue until the bridge closes, however slowly the test runs.
+        let interface = RecordingInterface(frontmost: "com.apple.finder", holdsActivation: true)
         let session = await startSession(EmulatedKeypad())
         let path = temporarySocketPath()
         defer {
@@ -587,9 +603,8 @@ struct BridgeTests {
         send(#"{"type":"sendShortcut","id":2,"shortcut":"cmd+e","bundleID":"app.two","activate":true}"#, to: second)
         try await Task.sleep(for: .milliseconds(200))
         bridge.close()
-        #expect(await finishes(running))
-        // Wait past the activation timeout, in case the queued shortcut still runs.
-        try await Task.sleep(for: .milliseconds(1200))
+        // When the bridge stops, it has canceled and waited for every connection's work.
+        #expect(await finishes(running, within: .seconds(10)))
         #expect(interface.calls == [.activate("app.one")])
         await session.stop()
     }
