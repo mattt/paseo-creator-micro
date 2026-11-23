@@ -45,7 +45,7 @@ public struct KeypadTools: Sendable {
         }
     }
 
-    /// The tool definitions, with their input schemas.
+    /// The tool definitions, with their input and output schemas.
     public static let definitions: [Tool] = [
         Tool(
             name: "get_keypad_state",
@@ -65,7 +65,8 @@ public struct KeypadTools: Sendable {
                 show their own lights; the others show the key backlight zone.
                 """,
             inputSchema: ["type": "object", "properties": [:]],
-            annotations: .init(readOnlyHint: true, openWorldHint: false)
+            annotations: .init(readOnlyHint: true, openWorldHint: false),
+            outputSchema: stateOutputSchema
         ),
         Tool(
             name: "set_key_lights",
@@ -87,7 +88,8 @@ public struct KeypadTools: Sendable {
                 ],
                 "required": ["lights"],
             ],
-            annotations: .init(destructiveHint: false, idempotentHint: true, openWorldHint: false)
+            annotations: .init(destructiveHint: false, idempotentHint: true, openWorldHint: false),
+            outputSchema: stateOutputSchema
         ),
         Tool(
             name: "set_zone_lights",
@@ -102,13 +104,15 @@ public struct KeypadTools: Sendable {
                     "ambient": lightSchema(withKey: false),
                 ],
             ],
-            annotations: .init(destructiveHint: false, idempotentHint: true, openWorldHint: false)
+            annotations: .init(destructiveHint: false, idempotentHint: true, openWorldHint: false),
+            outputSchema: stateOutputSchema
         ),
         Tool(
             name: "clear_lights",
             description: "Turns off every key light and both zones, and forgets the lights that the app keeps.",
             inputSchema: ["type": "object", "properties": [:]],
-            annotations: .init(destructiveHint: true, idempotentHint: true, openWorldHint: false)
+            annotations: .init(destructiveHint: true, idempotentHint: true, openWorldHint: false),
+            outputSchema: stateOutputSchema
         ),
         Tool(
             name: "wait_for_input",
@@ -128,11 +132,20 @@ public struct KeypadTools: Sendable {
                     ]
                 ],
             ],
-            annotations: .init(readOnlyHint: true, openWorldHint: false)
+            annotations: .init(readOnlyHint: true, openWorldHint: false),
+            outputSchema: waitOutputSchema
         ),
     ]
 
-    private static func lightSchema(withKey: Bool) -> Value {
+    /// The schema of a key or zone light.
+    ///
+    /// - Parameters:
+    ///   - withKey: Whether the light has a `key`.
+    ///   - stored: Whether the schema describes a light that the app keeps, in a tool's result,
+    ///     which always has every member and an uppercase `#RRGGBB` color,
+    ///     rather than a light in a tool's arguments.
+    ///   - description: The description of the light, if any.
+    private static func lightSchema(withKey: Bool, stored: Bool = false, description: String? = nil) -> Value {
         var properties: [String: Value] = [
             "color": [
                 "type": "string", "description": "A hex color such as #FF2D2D.", "pattern": "^#?[0-9A-Fa-f]{6}$",
@@ -146,7 +159,202 @@ public struct KeypadTools: Sendable {
             properties["key"] = ["type": "integer", "minimum": 0, "maximum": 12]
             required.insert("key", at: 0)
         }
-        return ["type": "object", "properties": .object(properties), "required": .array(required)]
+        if stored {
+            properties["color"] = [
+                "type": "string", "description": "The color as #RRGGBB, in uppercase.", "pattern": "^#[0-9A-F]{6}$",
+            ]
+            if withKey {
+                properties["key"] = [
+                    "type": "integer", "minimum": 0, "maximum": 12,
+                    "description": "The key, from 0 to 12 in rows of 2, 4, 4, and 3, left to right.",
+                ]
+            }
+            required = properties.keys.sorted().map { .string($0) }
+        }
+        var schema: [String: Value] = [
+            "type": "object", "properties": .object(properties), "required": .array(required),
+        ]
+        if let description { schema["description"] = .string(description) }
+        return .object(schema)
+    }
+
+    /// The schema of ``StateOutput``, the result of every tool except `wait_for_input`.
+    static let stateOutputSchema: Value = [
+        "type": "object",
+        "properties": [
+            "keypad": keypadSchema,
+            "lights": [
+                "type": "object",
+                "description": "The lights that the app keeps and sends again after a reconnect.",
+                "properties": [
+                    "keys": [
+                        "type": "array",
+                        "description": "The per-key lights, by key in ascending order.",
+                        "items": lightSchema(withKey: true, stored: true),
+                    ],
+                    "zones": [
+                        "type": "object",
+                        "description": "The zone lights; a zone that is not set is absent.",
+                        "properties": [
+                            "keys": lightSchema(
+                                withKey: false,
+                                stored: true,
+                                description: "The backlight of keys that do not show their own light."
+                            ),
+                            "ambient": lightSchema(withKey: false, stored: true, description: "The ambient ring."),
+                        ],
+                    ],
+                ],
+                "required": ["keys", "zones"],
+            ],
+            "lastInput": inputSchema(
+                description: "The last key, dial, or joystick input; absent until the first input.",
+                nullable: false
+            ),
+        ],
+        "required": ["keypad", "lights"],
+    ]
+
+    /// The schema of ``WaitOutput``, the result of `wait_for_input`.
+    static let waitOutputSchema: Value = [
+        "type": "object",
+        "properties": [
+            "input": inputSchema(
+                description: "The input, or null when the timeout passed first.",
+                nullable: true
+            )
+        ],
+        "required": ["input"],
+    ]
+
+    /// The schema of ``KeypadState``.
+    private static let keypadSchema: Value = [
+        "type": "object",
+        "description": "What the app knows about the keypad. A value that is not yet known is absent.",
+        "properties": [
+            "connected": ["type": "boolean", "description": "Whether a keypad is connected."],
+            "transport": [
+                "type": "string",
+                "description": "The connection, such as USB or Emulated; absent when disconnected.",
+            ],
+            "firmware": ["type": "string", "description": "The firmware version, such as 0.6.3."],
+            "layer": [
+                "type": "integer", "minimum": 1, "description": "The active layer, counted from 1.",
+            ],
+            "battery": [
+                "type": "integer", "minimum": 0, "maximum": 100, "description": "The battery charge, in percent.",
+            ],
+            "charging": ["type": "boolean", "description": "Whether the battery is charging."],
+            "inputLayers": [
+                "type": "array",
+                "description": """
+                The layers, in ascending order, whose inputs reach the app and whose keys show per-key lights.
+                """,
+                "items": ["type": "integer", "minimum": 1],
+            ],
+            "lightableKeys": [
+                "type": "object",
+                "description": """
+                The keys, from 0 to 12, that show their own lights on each input layer, \
+                by layer number. Other keys show the key backlight zone.
+                """,
+                "propertyNames": ["pattern": "^[0-9]+$"],
+                "additionalProperties": [
+                    "type": "array",
+                    "items": ["type": "integer", "minimum": 0, "maximum": 12],
+                ],
+            ],
+            "lightsVisible": [
+                "type": "boolean",
+                "description": "Whether a keypad is connected and its active layer is an input layer.",
+            ],
+            "chatGPTLayer": [
+                "type": "integer", "minimum": 1,
+                "description": #"The layer that Codex drives: the keymap's layer named "ChatGPT", else 4."#,
+            ],
+            "chatGPTRunning": [
+                "type": "boolean",
+                "description": "Whether the ChatGPT app (Codex) runs and can reach the keypad.",
+            ],
+            "lightsPaused": [
+                "type": "boolean", "description": "Whether the app pauses its lighting writes now.",
+            ],
+            "lightingStatus": [
+                "type": "string", "description": "Why lighting writes are paused, or that they are not.",
+            ],
+        ],
+        "required": [
+            "connected", "inputLayers", "lightableKeys", "lightsVisible", "chatGPTLayer", "chatGPTRunning",
+            "lightsPaused", "lightingStatus",
+        ],
+    ]
+
+    /// The schema of a ``KeypadInput``: one of a key, dial, or joystick object, told apart by `kind`.
+    ///
+    /// - Parameters:
+    ///   - description: The description of the value.
+    ///   - nullable: Whether the value can be `null`.
+    private static func inputSchema(description: String, nullable: Bool) -> Value {
+        var variants: [Value] = [
+            [
+                "type": "object",
+                "properties": [
+                    "kind": ["type": "string", "const": "key"],
+                    "key": [
+                        "type": "integer", "minimum": 0, "maximum": 19,
+                        "description": """
+                        The key: 0 to 12 for the physical keys, in rows of 2, 4, 4, and 3, left to right, \
+                        or 13 to 19 for the codes AG13 to AG19, which a keymap can bind to other controls.
+                        """,
+                    ],
+                    "code": [
+                        "type": "string",
+                        "description": "The firmware's code for the key, such as AG03 or ACT10.",
+                    ],
+                    "action": [
+                        "type": "string",
+                        "enum": .array(KeyAction.allCases.map { .string($0.rawValue) }),
+                    ],
+                ],
+                "required": ["kind", "key", "code", "action"],
+            ],
+            [
+                "type": "object",
+                "properties": [
+                    "kind": ["type": "string", "const": "dial"],
+                    "action": [
+                        "type": "string",
+                        "description": "One step clockwise or counterclockwise, or a press or release of the dial.",
+                        "enum": .array(DialAction.allCases.map { .string($0.rawValue) }),
+                    ],
+                ],
+                "required": ["kind", "action"],
+            ],
+            [
+                "type": "object",
+                "properties": [
+                    "kind": ["type": "string", "const": "joystick"],
+                    "angle": [
+                        "type": "number", "minimum": 0, "maximum": 1,
+                        "description": """
+                        The direction, as a fraction of a turn counterclockwise from east: \
+                        up is 0.25, west is 0.5, and down is 0.75.
+                        """,
+                    ],
+                    "distance": [
+                        "type": "number", "minimum": 0, "maximum": 1,
+                        "description": "The distance from the center, from 0 to 1.",
+                    ],
+                    "sector": [
+                        "type": "integer", "minimum": -1, "maximum": 7,
+                        "description": "The sector, from 0 to 7, or -1 when the joystick is at rest.",
+                    ],
+                ],
+                "required": ["kind", "angle", "distance", "sector"],
+            ],
+        ]
+        if nullable { variants.append(["type": "null"]) }
+        return ["description": .string(description), "oneOf": .array(variants)]
     }
 
     /// Runs a tool.
@@ -192,7 +400,7 @@ public struct KeypadTools: Sendable {
     }
 
     /// The result of `wait_for_input`: `{"input": …}`, with `null` when the wait timed out.
-    private struct WaitOutput: Encodable {
+    struct WaitOutput: Encodable {
         var input: KeypadInput?
 
         private enum CodingKeys: String, CodingKey { case input }
@@ -204,7 +412,9 @@ public struct KeypadTools: Sendable {
         }
     }
 
-    private struct StateOutput: Encodable {
+    /// The result of every tool except `wait_for_input`: the keypad's state, the lights that the app keeps,
+    /// and the last input, which is absent until the first input.
+    struct StateOutput: Encodable {
         var keypad: KeypadState
         var lights: DesiredLights
         var lastInput: KeypadInput?
