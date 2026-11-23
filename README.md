@@ -229,6 +229,8 @@ The stateless Streamable HTTP MCP server listens only on loopback at
 `http://127.0.0.1:7655/mcp`.
 It provides `get_keypad_state`, `set_key_lights`, `set_zone_lights`, `clear_lights`,
 and `wait_for_input`.
+Each tool returns JSON as text and as structured content,
+and declares the shape of that JSON in its output schema.
 Lighting requests are previews and do not save keypad files.
 The bundled `micro` command is another bridge client:
 

@@ -44,14 +44,21 @@ struct MCPTests {
         try JSONValue(parsing: Data(text(content).utf8))
     }
 
-    @Test("Lists the tools")
+    @Test("Lists the tools, each with an output schema")
     func listsTools() async throws {
         try await withServer { server, _, _ in
             let client = try await connect(server)
-            let tools = try await client.listTools().tools.map(\.name)
+            let tools = try await client.listTools().tools
             #expect(
-                tools == ["get_keypad_state", "set_key_lights", "set_zone_lights", "clear_lights", "wait_for_input"]
+                tools.map(\.name)
+                    == ["get_keypad_state", "set_key_lights", "set_zone_lights", "clear_lights", "wait_for_input"]
             )
+            for tool in tools {
+                let expected =
+                    tool.name == "wait_for_input" ? KeypadTools.waitOutputSchema : KeypadTools.stateOutputSchema
+                #expect(tool.outputSchema == expected, "\(tool.name)")
+                #expect(tool.outputSchema?.objectValue?["type"] == "object", "\(tool.name)")
+            }
             await client.disconnect()
         }
     }
