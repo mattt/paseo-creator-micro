@@ -77,7 +77,8 @@ public final class BridgeServer: Sendable {
     /// The workspace that a client selected, which each `hello` returns.
     public let selection: SelectionStore
 
-    private typealias Connection = (channel: NIOAsyncChannel<ByteBuffer, ByteBuffer>, processID: Int32?)
+    private typealias Connections = ConnectionSet<ByteBuffer, ByteBuffer>
+    private typealias Connection = (channel: Connections.Connection, processID: Int32?)
 
     private let serverChannel: NIOAsyncChannel<Connection, Never>
     private let session: KeypadSession
@@ -87,13 +88,14 @@ public final class BridgeServer: Sendable {
     private let connected = Mutex<[UUID: BridgeClientInfo]>([:])
     private let onClientsChange: (@Sendable ([BridgeClientInfo]) -> Void)?
     private let clientQueueLimit: Int
-    private let connections = ConnectionSet()
+    private let connections: Connections
     private let socketFile: SocketFile
 
     private init(
         path: String,
         socketFile: SocketFile,
         serverChannel: NIOAsyncChannel<Connection, Never>,
+        connections: Connections,
         session: KeypadSession,
         interface: any InterfaceDriver,
         radialMenu: RadialMenuController,
@@ -107,6 +109,7 @@ public final class BridgeServer: Sendable {
         self.selection = selection
         self.socketFile = socketFile
         self.serverChannel = serverChannel
+        self.connections = connections
         self.session = session
         self.interface = interface
         self.events = EventSender(interface: interface)
@@ -170,6 +173,7 @@ public final class BridgeServer: Sendable {
             Darwin.close(fd)
             throw error
         }
+        let connections = Connections()
         let channel: NIOAsyncChannel<Connection, Never>
         do {
             channel = try await ServerBootstrap(group: MultiThreadedEventLoopGroup.singleton)
@@ -179,10 +183,7 @@ public final class BridgeServer: Sendable {
                             ChannelOptions.Types.SocketOption(level: SOL_LOCAL, name: LOCAL_PEERPID)
                         )
                         try channel.pipeline.syncOperations.addHandler(ByteToMessageHandler(LineDecoder()))
-                        let wrapped = try NIOAsyncChannel<ByteBuffer, ByteBuffer>(
-                            wrappingChannelSynchronously: channel
-                        )
-                        return Connection(channel: wrapped, processID: processID)
+                        return try Connection(channel: connections.wrap(channel), processID: processID)
                     }
                 }
         } catch {
@@ -193,6 +194,7 @@ public final class BridgeServer: Sendable {
             path: path,
             socketFile: socketFile,
             serverChannel: channel,
+            connections: connections,
             session: session,
             interface: interface,
             radialMenu: radialMenu,
@@ -244,8 +246,7 @@ public final class BridgeServer: Sendable {
     // MARK: - Connections
 
     private func serve(_ channel: NIOAsyncChannel<ByteBuffer, ByteBuffer>, processID: Int32?) async {
-        guard connections.insert(channel.channel) else { return }
-        defer { connections.remove(channel.channel) }
+        guard !connections.isClosed else { return }
         let id = UUID()
         let info = BridgeClientInfo(
             id: id,
