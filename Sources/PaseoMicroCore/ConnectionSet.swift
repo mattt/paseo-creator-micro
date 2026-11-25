@@ -1,45 +1,47 @@
 import NIOCore
 import Synchronization
 
-/// The open connections of a server, so that closing the server closes them too.
-///
-/// A server that waits for its connection tasks would otherwise wait
-/// for every idle client to leave before it stops.
-final class ConnectionSet: Sendable {
+/// The connections a server has accepted, including those still waiting for its accept loop.
+final class ConnectionSet<Inbound: Sendable, Outbound: Sendable>: Sendable {
+    typealias Connection = NIOAsyncChannel<Inbound, Outbound>
+
     private struct State {
         var closed = false
-        var channels: [ObjectIdentifier: any Channel] = [:]
+        var channels: [ObjectIdentifier: Connection] = [:]
     }
 
     private let state = Mutex(State())
 
-    /// Adds a connection, or closes it at once if the server has closed.
-    ///
-    /// - Parameter channel: The connection's channel.
-    /// - Returns: `true` if the connection was added; `false` if it was closed.
-    func insert(_ channel: any Channel) -> Bool {
-        let added = state.withLock { state in
-            guard !state.closed else { return false }
-            state.channels[ObjectIdentifier(channel)] = channel
-            return true
+    var isClosed: Bool { state.withLock { $0.closed } }
+
+    /// Wraps an accepted channel on its event loop, or closes it if the server has stopped.
+    func wrap(_ channel: any Channel) throws -> Connection {
+        let id = ObjectIdentifier(channel)
+        do {
+            let connection = try state.withLock { state in
+                guard !state.closed else { throw ChannelError.ioOnClosedChannel }
+                let connection = try Connection(wrappingChannelSynchronously: channel)
+                state.channels[id] = connection
+                return connection
+            }
+            // The accept loop can drop a buffered connection during shutdown.
+            // Keep its writer alive until NIO finishes it when the child channel closes.
+            channel.closeFuture.whenComplete { _ in
+                _ = self.state.withLock { $0.channels.removeValue(forKey: id) }
+            }
+            return connection
+        } catch {
+            channel.close(promise: nil)
+            throw error
         }
-        if !added { channel.close(promise: nil) }
-        return added
     }
 
-    /// Removes a connection that has ended.
-    ///
-    /// - Parameter channel: The connection's channel.
-    func remove(_ channel: any Channel) {
-        _ = state.withLock { $0.channels.removeValue(forKey: ObjectIdentifier(channel)) }
-    }
-
-    /// Closes every connection, and every connection added later.
+    /// Closes every connection and prevents the server from accepting more.
     func closeAll() {
         let channels = state.withLock { state in
             state.closed = true
             return Array(state.channels.values)
         }
-        for channel in channels { channel.close(promise: nil) }
+        for connection in channels { connection.channel.close(promise: nil) }
     }
 }
