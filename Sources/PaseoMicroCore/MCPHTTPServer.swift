@@ -34,23 +34,26 @@ public final class MCPHTTPServer: Sendable {
     /// The server's version, in the MCP `initialize` reply.
     public let version: String
 
-    private typealias Connection = NIOAsyncChannel<HTTPServerRequestPart, HTTPServerResponsePart>
+    private typealias Connections = ConnectionSet<HTTPServerRequestPart, HTTPServerResponsePart>
+    private typealias Connection = Connections.Connection
 
     private let serverChannel: NIOAsyncChannel<Connection, Never>
     private let tools: KeypadTools
-    private let connections = ConnectionSet()
+    private let connections: Connections
 
     private init(
         host: String,
         port: Int,
         version: String,
         serverChannel: NIOAsyncChannel<Connection, Never>,
-        tools: KeypadTools
+        tools: KeypadTools,
+        connections: Connections
     ) {
         self.host = host
         self.port = port
         self.version = version
         self.serverChannel = serverChannel
+        self.connections = connections
         self.tools = tools
     }
 
@@ -74,6 +77,7 @@ public final class MCPHTTPServer: Sendable {
         version: String = paseoMicroVersion,
         tools: KeypadTools
     ) async throws -> MCPHTTPServer {
+        let connections = Connections()
         let channel = try await ServerBootstrap(group: MultiThreadedEventLoopGroup.singleton)
             .serverChannelOption(.socketOption(.so_reuseaddr), value: 1)
             .bind(host: host, port: port) { channel in
@@ -81,11 +85,18 @@ public final class MCPHTTPServer: Sendable {
                 // so a client that disconnects during a long tool call would go unnoticed.
                 // `serve` answers one request at a time, in order, without it.
                 channel.pipeline.configureHTTPServerPipeline(withPipeliningAssistance: false).flatMapThrowing {
-                    try Connection(wrappingChannelSynchronously: channel)
+                    try connections.wrap(channel)
                 }
             }
         let boundPort = channel.channel.localAddress?.port ?? port
-        return MCPHTTPServer(host: host, port: boundPort, version: version, serverChannel: channel, tools: tools)
+        return MCPHTTPServer(
+            host: host,
+            port: boundPort,
+            version: version,
+            serverChannel: channel,
+            tools: tools,
+            connections: connections
+        )
     }
 
     /// Accepts connections until the task is canceled or ``close()`` is called.
@@ -122,8 +133,7 @@ public final class MCPHTTPServer: Sendable {
     // MARK: - HTTP
 
     private func serve(_ connection: Connection) async {
-        guard connections.insert(connection.channel) else { return }
-        defer { connections.remove(connection.channel) }
+        guard !connections.isClosed else { return }
         let calls = ToolCalls()
         connection.channel.closeFuture.whenComplete { _ in calls.cancel() }
         await withTaskCancellationHandler {

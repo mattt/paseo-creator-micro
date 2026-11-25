@@ -170,6 +170,34 @@ struct BridgeTests {
         reading.cancel()
     }
 
+    @Test("Shutdown closes clients waiting for the accept loop", arguments: [false, true])
+    func shutdownWithPendingClients(cancel: Bool) async throws {
+        let session = KeypadSession(transport: EmulatedKeypad())
+        let path = temporarySocketPath()
+        defer {
+            try? FileManager.default.removeItem(atPath: URL(fileURLWithPath: path).deletingLastPathComponent().path)
+        }
+        let bridge = try await BridgeServer.bind(path: path, session: session, interface: RecordingInterface())
+        defer { bridge.close() }
+        var peers: [Int32] = []
+        defer { for peer in peers { close(peer) } }
+        for _ in 0 ..< 8 { peers.append(try connectUnix(path: path)) }
+
+        if !cancel { bridge.close() }
+        let running = Task { try await bridge.run() }
+        if cancel { running.cancel() }
+        #expect(await finishes(running))
+        for peer in peers {
+            #expect(
+                await eventually {
+                    var bytes = [UInt8](repeating: 0, count: 4096)
+                    let count = recv(peer, &bytes, bytes.count, MSG_DONTWAIT)
+                    return count == 0 || (count == -1 && errno == ECONNRESET)
+                }
+            )
+        }
+    }
+
     @Test("Closing a server leaves a newer socket at its path")
     func closeLeavesNewerSocket() async throws {
         let session = KeypadSession(transport: EmulatedKeypad())
