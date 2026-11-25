@@ -70,11 +70,10 @@ public final class EmulatedKeypad: KeypadTransport {
     // MARK: - KeypadTransport
 
     public func start(_ handler: @escaping @Sendable (KeypadTransportEvent) -> Void) {
-        let isPluggedIn = state.withLock { state in
+        state.withLock { state in
             state.handler = handler
-            return state.isPluggedIn
+            if state.isPluggedIn { emit([.connected(device)], to: handler) }
         }
-        if isPluggedIn { emit([.connected(device)]) }
     }
 
     public func stop() {
@@ -189,25 +188,23 @@ public final class EmulatedKeypad: KeypadTransport {
     ///
     /// The keypad forgets its lights, as a real keypad does when it loses power.
     public func unplug() {
-        let wasPluggedIn = state.withLock { state in
-            defer {
-                state.isPluggedIn = false
-                state.keyLights = [:]
-                state.zones = ZoneLights()
-                state.reassembler.reset()
-            }
-            return state.isPluggedIn
+        state.withLock { state in
+            guard state.isPluggedIn else { return }
+            state.isPluggedIn = false
+            state.keyLights = [:]
+            state.zones = ZoneLights()
+            state.reassembler.reset()
+            emit([.disconnected], to: state.handler)
         }
-        if wasPluggedIn { emit([.disconnected]) }
     }
 
     /// Plugs the keypad back in: the transport reports a connection.
     public func plugIn() {
-        let wasPluggedIn = state.withLock { state in
-            defer { state.isPluggedIn = true }
-            return state.isPluggedIn
+        state.withLock { state in
+            guard !state.isPluggedIn else { return }
+            state.isPluggedIn = true
+            emit([.connected(device)], to: state.handler)
         }
-        if !wasPluggedIn { emit([.connected(device)]) }
     }
 
     // MARK: - Inputs
@@ -250,19 +247,22 @@ public final class EmulatedKeypad: KeypadTransport {
         send(.joystick(JoystickInput(angle: angle, distance: distance, sector: sector)))
     }
 
-    /// Sends any message, such as a reply to another program's request.
+    /// Sends a message while the keypad is plugged in, such as a reply to another program's request.
     ///
     /// - Parameter message: The message to send.
     public func emit(message: RPCMessage) {
         var bytes = Array(message.json.encoded())
         bytes += Array("\r\n".utf8)
-        emit(Report.reports(for: bytes, channel: .rpc).map(KeypadTransportEvent.report))
+        let events = Report.reports(for: bytes, channel: .rpc).map(KeypadTransportEvent.report)
+        state.withLock { state in
+            if state.isPluggedIn { emit(events, to: state.handler) }
+        }
     }
 
     // MARK: - Private
 
-    private func emit(_ events: [KeypadTransportEvent]) {
-        guard let handler = state.withLock({ $0.handler }) else { return }
+    private func emit(_ events: [KeypadTransportEvent], to handler: (@Sendable (KeypadTransportEvent) -> Void)?) {
+        guard let handler else { return }
         queue.async {
             for event in events { handler(event) }
         }

@@ -111,6 +111,22 @@ struct KeypadClientTests {
         await client.stop()
     }
 
+    @Test("Dial turns while the emulated keypad is unplugged produce no input")
+    func inputsAcrossReconnect() async throws {
+        let keypad = EmulatedKeypad()
+        let (client, events) = try await connect(keypad)
+        keypad.unplug()
+        keypad.turnDial(clockwise: false)
+        keypad.plugIn()
+        keypad.turnDial(clockwise: true)
+
+        var iterator = events.makeAsyncIterator()
+        #expect(try await iterator.next() == .disconnected)
+        #expect(try await iterator.next() == .connected(EmulatedKeypad.defaultDevice))
+        #expect(try await iterator.next() == .input(.dial(.clockwise)))
+        await client.stop()
+    }
+
     @Test("Delivers injected inputs as events")
     func inputs() async throws {
         let keypad = EmulatedKeypad()
